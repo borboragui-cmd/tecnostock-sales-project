@@ -1,0 +1,319 @@
+{% extends 'billing/base.html' %}
+{% block title %}Productos{% endblock %}
+{% block content %}
+
+<style>
+.product-table thead th { background-color: #0F172A; color: #fff; border-color: #1E293B; }
+.product-table tbody tr:hover td { background-color: #F8FAFC; }
+.badge-supplier { background-color: #DBEAFE; color: #1E40AF; font-weight: 500; }
+.btn-action { border-radius: 4px; font-size: 12px; padding: 4px 10px; }
+</style>
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Catálogo</div>
+        <h1 class="page-title">Productos</h1>
+        <p class="page-subtitle">Inventario completo de productos</p>
+    </div>
+    <div class="page-actions">
+        <button type="button" class="btn btn-danger"
+                data-bs-toggle="modal" data-bs-target="#exportModal" data-format="pdf">
+            <i class="bi bi-file-pdf"></i> PDF
+        </button>
+        <button type="button" class="btn btn-success"
+                data-bs-toggle="modal" data-bs-target="#exportModal" data-format="excel">
+            <i class="bi bi-file-excel"></i> Excel
+        </button>
+        <a href="{% url 'billing:product_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nuevo Producto
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="content-card mb-4">
+    <div class="content-card-header">
+        <span class="content-card-title"><i class="bi bi-funnel me-1"></i> Filtros</span>
+    </div>
+    <div class="content-card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Nombre</label>
+                <input type="text" class="form-control" name="name" placeholder="Nombre del producto" value="{{ name }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Descripción</label>
+                <input type="text" class="form-control" name="description" placeholder="Descripción" value="{{ description }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Marca</label>
+                <select class="form-select" name="brand">
+                    <option value="">Todas las marcas</option>
+                    {% for b in brands %}
+                    <option value="{{ b.id }}" {% if brand == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Grupo</label>
+                <select class="form-select" name="group">
+                    <option value="">Todos los grupos</option>
+                    {% for g in groups %}
+                    <option value="{{ g.id }}" {% if group == g.id|stringformat:'s' %}selected{% endif %}>{{ g.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Proveedor</label>
+                <select class="form-select" name="supplier">
+                    <option value="">Todos los proveedores</option>
+                    {% for s in suppliers %}
+                    <option value="{{ s.id }}" {% if supplier == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select class="form-select" name="is_active">
+                    <option value="">Todos</option>
+                    <option value="true" {% if is_active == 'true' %}selected{% endif %}>Activo</option>
+                    <option value="false" {% if is_active == 'false' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Precio mín.</label>
+                <input type="number" class="form-control" name="min_price" placeholder="0.00" step="0.01" value="{{ min_price }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Precio máx.</label>
+                <input type="number" class="form-control" name="max_price" placeholder="9999.99" step="0.01" value="{{ max_price }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stock mín.</label>
+                <input type="number" class="form-control" name="min_stock" placeholder="0" value="{{ min_stock }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stock máx.</label>
+                <input type="number" class="form-control" name="max_stock" placeholder="9999" value="{{ max_stock }}">
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                <a href="{% url 'billing:product_list' %}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Contador cuando hay filtros -->
+{% if name or description or brand or group or supplier or min_price or max_price or min_stock or max_stock or is_active %}
+<p class="text-muted mb-2"><strong>{{ page_obj.paginator.count }}</strong> producto{{ page_obj.paginator.count|pluralize:"s" }} encontrado{{ page_obj.paginator.count|pluralize:"s" }}</p>
+{% endif %}
+
+<!-- Tabla -->
+<div class="content-card">
+    <table class="table table-hover product-table mb-0">
+        <thead>
+            <tr>
+                <th>Foto</th>
+                <th>Nombre</th>
+                <th>Marca</th>
+                <th>Grupo</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Proveedores</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;">
+                    {% else %}
+                        <span class="text-muted" style="font-size:.75rem;">Sin foto</span>
+                    {% endif %}
+                </td>
+                <td class="fw-semibold">{{ item.name }}</td>
+                <td>{{ item.brand.name }}</td>
+                <td>{{ item.group.name }}</td>
+                <td>${{ item.unit_price }}</td>
+                <td>{{ item.stock }}</td>
+                <td>
+                    {% for s in item.suppliers.all %}
+                        <span class="badge badge-supplier">{{ s.name }}</span>
+                    {% empty %}
+                        <span class="text-muted small">—</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    <a href="{% url 'billing:product_detail' item.pk %}" class="btn btn-action me-1" style="background:#2563EB; color:#fff; border:none;">Ver</a>
+                    <a href="{% url 'billing:product_update' item.pk %}" class="btn btn-action me-1" style="background:#B45309; color:#fff; border:none;">Editar</a>
+                    <a href="{% url 'billing:product_delete' item.pk %}" class="btn btn-action" style="background:#DC2626; color:#fff; border:none;">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center py-4 text-muted">No se encontraron productos.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if name %}&name={{ name }}{% endif %}{% if description %}&description={{ description }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if group %}&group={{ group }}{% endif %}{% if supplier %}&supplier={{ supplier }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if min_stock %}&min_stock={{ min_stock }}{% endif %}{% if max_stock %}&max_stock={{ max_stock }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">« Primera</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if name %}&name={{ name }}{% endif %}{% if description %}&description={{ description }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if group %}&group={{ group }}{% endif %}{% if supplier %}&supplier={{ supplier }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if min_stock %}&min_stock={{ min_stock }}{% endif %}{% if max_stock %}&max_stock={{ max_stock }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">Anterior</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">« Primera</span></li>
+            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if name %}&name={{ name }}{% endif %}{% if description %}&description={{ description }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if group %}&group={{ group }}{% endif %}{% if supplier %}&supplier={{ supplier }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if min_stock %}&min_stock={{ min_stock }}{% endif %}{% if max_stock %}&max_stock={{ max_stock }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if name %}&name={{ name }}{% endif %}{% if description %}&description={{ description }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if group %}&group={{ group }}{% endif %}{% if supplier %}&supplier={{ supplier }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if min_stock %}&min_stock={{ min_stock }}{% endif %}{% if max_stock %}&max_stock={{ max_stock }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">Siguiente</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if name %}&name={{ name }}{% endif %}{% if description %}&description={{ description }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if group %}&group={{ group }}{% endif %}{% if supplier %}&supplier={{ supplier }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if min_stock %}&min_stock={{ min_stock }}{% endif %}{% if max_stock %}&max_stock={{ max_stock }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">Última »</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+            <li class="page-item disabled"><span class="page-link">Última »</span></li>
+        {% endif %}
+    </ul>
+</nav>
+<div class="text-center text-muted">
+    <small>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} productos)</small>
+</div>
+{% endif %}
+
+<!-- ═══════════ MODAL DE EXPORTACIÓN ═══════════ -->
+<style>
+  .exp-modal-overlay .modal-dialog { max-width: 580px; }
+  .exp-field-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-radius: 12px; border: 1.5px solid #3B82F6;
+    background: #EFF6FF; cursor: pointer; user-select: none; transition: background .15s, border-color .15s;
+  }
+  .exp-field-card.unselected { border-color: #E5E7EB; background: #F9FAFB; }
+  .exp-field-card .exp-icon  { color: #2563EB; font-size: 1.1rem; transition: color .15s; }
+  .exp-field-card .exp-label { font-weight: 600; color: #1E3A5F; font-size: .88rem; transition: color .15s; }
+  .exp-field-card .exp-check { width: 20px; height: 20px; background: #2563EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+  .exp-field-card .exp-check i { color: white; font-size: .65rem; }
+  .exp-field-card.unselected .exp-icon  { color: #9CA3AF; }
+  .exp-field-card.unselected .exp-label { color: #6B7280; }
+  .exp-field-card.unselected .exp-check { background: #D1D5DB; }
+  .exp-tool-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border: 1px solid #D1D5DB; border-radius: 8px; background: white; color: #374151; font-size: .82rem; cursor: pointer; line-height: 1.4; }
+  .exp-tool-btn:hover { background: #F3F4F6; }
+  .exp-cancel-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: 1px solid #9CA3AF; border-radius: 10px; background: white; color: #374151; font-size: .9rem; cursor: pointer; }
+  .exp-cancel-btn:hover { background: #F3F4F6; }
+  .exp-submit-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: none; border-radius: 10px; color: white; font-weight: 600; font-size: .9rem; cursor: pointer; }
+</style>
+
+<div class="modal fade exp-modal-overlay" id="exportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.22);">
+      <div id="expHeader" style="background:#D92136; padding:18px 28px; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i id="expHeaderIcon" class="bi bi-file-pdf-fill" style="color:white; font-size:1.35rem;"></i>
+          <span id="expHeaderTitle" style="color:white; font-weight:700; font-size:1.1rem;">Exportar a PDF</span>
+        </div>
+        <button type="button" data-bs-dismiss="modal" style="background:none; border:none; color:white; font-size:1.15rem; cursor:pointer; opacity:.85;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div style="padding:24px 28px 12px;">
+        <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:20px;">
+          <i class="bi bi-info-circle-fill" style="color:#3B82F6; font-size:1rem; margin-top:2px; flex-shrink:0;"></i>
+          <span style="color:#475569; font-size:.9rem; line-height:1.5;">Elige los campos que quieres incluir en el documento:</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          {% for key, label in export_field_choices %}
+          <div class="exp-field-card" data-field="{{ key }}">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <i class="bi bi-{% if key == 'name' %}tag-fill{% elif key == 'description' %}file-text{% elif key == 'brand' %}award-fill{% elif key == 'group' %}folder-fill{% elif key == 'unit_price' %}currency-dollar{% elif key == 'stock' %}boxes{% elif key == 'is_active' %}toggle-on{% endif %} exp-icon"></i>
+              <span class="exp-label">{{ label }}</span>
+            </div>
+            <div class="exp-check"><i class="bi bi-check"></i></div>
+          </div>
+          {% endfor %}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px; border-top:1px solid #F1F5F9;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="exp-tool-btn" id="expSelectAll"><i class="bi bi-check2-all"></i> Todos</button>
+            <button type="button" class="exp-tool-btn" id="expSelectNone"><i class="bi bi-x-lg" style="font-size:.8rem;"></i> Ninguno</button>
+          </div>
+          <span id="expCount" style="color:#6B7280; font-size:.85rem;"></span>
+        </div>
+      </div>
+      <div style="padding:12px 28px 22px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="exp-cancel-btn" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Cancelar</button>
+        <button type="button" class="exp-submit-btn" id="expDoExport" style="background:#D92136; box-shadow:0 2px 10px rgba(217,33,54,.35);">
+          <i class="bi bi-file-pdf-fill" id="expSubmitIcon"></i>
+          <span id="expSubmitText">Exportar PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function setCardSelected(card, sel) { sel ? card.classList.remove('unselected') : card.classList.add('unselected'); }
+  function updateCount() {
+    var n = document.querySelectorAll('.exp-field-card:not(.unselected)').length;
+    document.getElementById('expCount').textContent = n + ' seleccionado' + (n !== 1 ? 's' : '');
+  }
+  document.querySelectorAll('.exp-field-card').forEach(function (card) {
+    setCardSelected(card, true);
+    card.addEventListener('click', function () { setCardSelected(this, this.classList.contains('unselected')); updateCount(); });
+  });
+  updateCount();
+  document.getElementById('expSelectAll').addEventListener('click', function () { document.querySelectorAll('.exp-field-card').forEach(function (c) { setCardSelected(c, true); }); updateCount(); });
+  document.getElementById('expSelectNone').addEventListener('click', function () { document.querySelectorAll('.exp-field-card').forEach(function (c) { setCardSelected(c, false); }); updateCount(); });
+  var exportFormat = 'pdf';
+  document.getElementById('exportModal').addEventListener('show.bs.modal', function (e) {
+    exportFormat = (e.relatedTarget && e.relatedTarget.dataset.format) || 'pdf';
+    var isPdf = exportFormat === 'pdf';
+    var COLOR = isPdf ? '#D92136' : '#16A34A';
+    var SHADOW = isPdf ? 'rgba(217,33,54,.35)' : 'rgba(22,163,74,.35)';
+    document.getElementById('expHeader').style.background = COLOR;
+    document.getElementById('expHeaderIcon').className = 'bi ' + (isPdf ? 'bi-file-pdf-fill' : 'bi-file-earmark-excel-fill');
+    document.getElementById('expHeaderTitle').textContent = isPdf ? 'Exportar a PDF' : 'Exportar a Excel';
+    document.getElementById('expSubmitIcon').className = 'bi ' + (isPdf ? 'bi-file-pdf-fill' : 'bi-file-earmark-excel-fill');
+    document.getElementById('expSubmitText').textContent = isPdf ? 'Exportar PDF' : 'Exportar Excel';
+    var btn = document.getElementById('expDoExport');
+    btn.style.background = COLOR; btn.style.boxShadow = '0 2px 10px ' + SHADOW;
+    updateCount();
+  });
+  function currentFilters() { var p = new URLSearchParams(window.location.search); p.delete('export'); p.delete('cols'); p.delete('page'); return p.toString(); }
+  document.getElementById('expDoExport').addEventListener('click', function () {
+    var cols = Array.from(document.querySelectorAll('.exp-field-card:not(.unselected)')).map(function (c) { return c.dataset.field; });
+    if (cols.length === 0) { alert('Selecciona al menos una columna.'); return; }
+    var filters = currentFilters();
+    var url = '?export=' + exportFormat + '&cols=' + encodeURIComponent(cols.join(','));
+    if (filters) url += '&' + filters;
+    window.location.href = url;
+  });
+})();
+</script>
+
+{% endblock %}

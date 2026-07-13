@@ -1,0 +1,58 @@
+{% extends 'billing/base.html' %}
+{% block title %}Clientes{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Ventas</div>
+        <h1 class="page-title">Clientes</h1>
+        <p class="page-subtitle">Registro de clientes del sistema</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'billing:customer_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nuevo Cliente
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>CI / RUC</th>
+                <th>Apellido</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><code>{{ item.dni }}</code></td>
+                <td class="fw-semibold">{{ item.last_name }}</td>
+                <td>{{ item.first_name }}</td>
+                <td>{{ item.email|default:"—" }}</td>
+                <td>{{ item.phone|default:"—" }}</td>
+                <td>
+                    {% if item.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'billing:customer_update' item.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="{% url 'billing:customer_delete' item.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">No hay clientes registrados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'billing/base.html' %}
+{% block title %}Compra #{{ purchase.id }}{% endblock %}
+{% block content %}
+
+<style>
+@media print {
+    .sidebar, .page-header .page-actions, .main-content > .page-header { display: none !important; }
+}
+</style>
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Compras</div>
+        <h1 class="page-title">Compra #{{ purchase.id }}</h1>
+        <p class="page-subtitle">{{ purchase.purchase_date|date:"d/m/Y H:i" }} — {{ purchase.supplier }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'purchasing:purchase_pdf' purchase.pk %}" target="_blank" class="btn btn-secondary">
+            <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+        </a>
+        <a href="{% url 'purchasing:purchase_excel' purchase.pk %}" class="btn btn-secondary">
+            <i class="bi bi-file-earmark-excel-fill"></i> Excel
+        </a>
+        <a href="{% url 'purchasing:purchase_delete' purchase.pk %}" class="btn btn-danger">
+            <i class="bi bi-trash3"></i> Eliminar
+        </a>
+        <a href="{% url 'purchasing:purchase_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="content-card h-100">
+            <div class="content-card-header">
+                <span class="content-card-title">Datos de la compra</span>
+            </div>
+            <div class="content-card-body">
+                <p class="mb-2"><span class="text-muted small">Proveedor</span><br><strong>{{ purchase.supplier }}</strong></p>
+                <p class="mb-2"><span class="text-muted small">N° Factura</span><br><code>{{ purchase.document_number }}</code></p>
+                <p class="mb-0"><span class="text-muted small">Fecha</span><br>{{ purchase.purchase_date|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="content-card">
+            <div class="content-card-header">
+                <span class="content-card-title">Líneas de detalle</span>
+                <span class="fw-bold" style="color:#2563EB; font-size:1.1rem;">Total: ${{ purchase.total }}</span>
+            </div>
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-end">Costo Unit.</th>
+                        <th class="text-end">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in purchase.details.all %}
+                    <tr>
+                        <td>{{ detail.product.name }}</td>
+                        <td class="text-center">{{ detail.quantity }}</td>
+                        <td class="text-end">${{ detail.unit_cost }}</td>
+                        <td class="text-end">${{ detail.subtotal }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center py-3 text-muted">Sin detalles.</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end fw-semibold">Subtotal:</td>
+                        <td class="text-end">${{ purchase.subtotal }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="text-end fw-semibold">IVA (15%):</td>
+                        <td class="text-end">${{ purchase.tax }}</td>
+                    </tr>
+                    <tr style="background:#EFF6FF;">
+                        <td colspan="3" class="text-end fw-bold fs-5">TOTAL:</td>
+                        <td class="text-end fw-bold fs-5" style="color:#2563EB;">${{ purchase.total }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

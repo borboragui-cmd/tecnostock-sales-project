@@ -1,0 +1,85 @@
+{% extends 'billing/base.html' %}
+{% block title %}Reporte de Costos{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Compras</div>
+        <h1 class="page-title">Reporte de Costos</h1>
+        <p class="page-subtitle">Costo promedio de compra por producto — <code>Avg('unit_cost')</code></p>
+    </div>
+    <a href="{% url 'purchasing:purchase_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="content-card text-center">
+            <div class="content-card-body">
+                <div class="text-muted small mb-1">Costo Promedio Global</div>
+                <div style="font-size:1.6rem; font-weight:700; color:#2563EB;">
+                    ${{ totals.grand_avg|floatformat:2|default:"0.00" }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="content-card text-center">
+            <div class="content-card-body">
+                <div class="text-muted small mb-1">Total Invertido</div>
+                <div style="font-size:1.6rem; font-weight:700; color:#15803D;">
+                    ${{ totals.grand_total|floatformat:2|default:"0.00" }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="content-card text-center">
+            <div class="content-card-body">
+                <div class="text-muted small mb-1">Unidades Compradas</div>
+                <div style="font-size:1.6rem; font-weight:700; color:#B45309;">
+                    {{ totals.grand_qty|default:"0" }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla detalle -->
+<div class="content-card">
+    <div class="content-card-header">
+        <span class="content-card-title">Detalle por Producto</span>
+    </div>
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Marca</th>
+                <th class="text-end">Costo Promedio</th>
+                <th class="text-end">Uds. Compradas</th>
+                <th class="text-end">Total Invertido</th>
+                <th class="text-center">N° Compras</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in report %}
+            <tr>
+                <td class="fw-semibold">{{ row.product__name }}</td>
+                <td><span class="badge bg-secondary">{{ row.product__brand__name }}</span></td>
+                <td class="text-end fw-semibold" style="color:#2563EB;">${{ row.avg_cost|floatformat:2 }}</td>
+                <td class="text-end">{{ row.total_quantity }}</td>
+                <td class="text-end fw-semibold" style="color:#15803D;">${{ row.total_spent|floatformat:2 }}</td>
+                <td class="text-center">
+                    <span class="badge bg-primary rounded-pill">{{ row.purchase_count }}</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">No hay datos de compras para mostrar.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

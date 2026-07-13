@@ -1,0 +1,54 @@
+{% extends 'billing/base.html' %}
+{% block title %}Facturas{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Ventas</div>
+        <h1 class="page-title">Facturas</h1>
+        <p class="page-subtitle">Historial de ventas y facturación</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'billing:invoice_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nueva Factura
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th class="text-end">Subtotal</th>
+                <th class="text-end">IVA (15%)</th>
+                <th class="text-end">Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in items %}
+            <tr>
+                <td class="fw-semibold">{{ inv.id }}</td>
+                <td>{{ inv.customer }}</td>
+                <td>{{ inv.invoice_date|date:"d/m/Y H:i" }}</td>
+                <td class="text-end">${{ inv.subtotal }}</td>
+                <td class="text-end">${{ inv.tax }}</td>
+                <td class="text-end fw-bold">${{ inv.total }}</td>
+                <td>
+                    <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                    <a href="{% url 'billing:invoice_delete' inv.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">Aún no hay facturas registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

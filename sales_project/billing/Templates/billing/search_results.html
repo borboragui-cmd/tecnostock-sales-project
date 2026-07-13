@@ -1,0 +1,176 @@
+{% extends 'billing/base.html' %}
+{% block title %}Búsqueda{% endblock %}
+{% block content %}
+
+<style>
+    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .section-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: rgba(37,99,235,0.1);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .section-icon i { color: #2563EB; font-size: 0.9rem; }
+    .section-title { font-size: 0.9rem; font-weight: 700; color: #0F172A; }
+    .section-count { font-size: 0.75rem; color: #64748B; }
+    .results-section { margin-bottom: 28px; }
+
+    .result-card { background: #fff; border-radius: 10px; border: 1px solid #E2E8F0; overflow: hidden; }
+    .result-row {
+        display: flex; align-items: center; gap: 14px;
+        padding: 14px 18px; border-bottom: 1px solid #F1F5F9;
+        text-decoration: none; color: inherit; transition: background 0.15s;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row:hover { background: #F8FAFC; text-decoration: none; }
+
+    .result-avatar {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: #EFF6FF; display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; font-weight: 700; color: #1D4ED8; flex-shrink: 0;
+    }
+    .result-avatar.invoice  { background: #EFF6FF; color: #1D4ED8; }
+    .result-avatar.customer { background: #F0FDF4; color: #15803D; }
+    .result-avatar.product  { background: #FDF4FF; color: #7C3AED; }
+    .result-avatar.supplier { background: #FFFBEB; color: #92400E; }
+
+    .result-name { font-size: 0.875rem; font-weight: 600; color: #0F172A; }
+    .result-meta { font-size: 0.75rem; color: #64748B; margin-top: 2px; }
+    .result-right { margin-left: auto; font-size: 0.82rem; font-weight: 600; color: #2563EB; flex-shrink: 0; }
+
+    .no-results-card {
+        background: #fff; border-radius: 10px; border: 1px solid #E2E8F0;
+        padding: 48px; text-align: center;
+    }
+    .no-results-card i { font-size: 2rem; color: #CBD5E1; display: block; margin-bottom: 12px; }
+    .no-results-card p { color: #64748B; font-size: 0.875rem; margin: 0; }
+</style>
+
+<!-- Header -->
+<div class="page-header">
+    <div>
+        <div class="page-label">Búsqueda Global</div>
+        <h1 class="page-title">
+            {% if q %}Resultados para "{{ q }}"{% else %}Búsqueda{% endif %}
+        </h1>
+        <p class="page-subtitle">
+            {% if q %}{{ total }} resultado{{ total|pluralize:"s" }} encontrado{{ total|pluralize:"s" }}{% else %}Escribe algo para buscar{% endif %}
+        </p>
+    </div>
+    <div class="page-actions">
+        <form action="{% url 'billing:global_search' %}" method="get" style="display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #2563EB; border-radius:50px; padding:8px 16px; min-width:280px;">
+            <i class="bi bi-search" style="color:#2563EB; font-size:0.88rem;"></i>
+            <input type="text" name="q" value="{{ q }}" placeholder="Buscar factura, cliente..."
+                   autofocus autocomplete="off"
+                   style="border:none; outline:none; font-size:0.84rem; width:100%; background:transparent;">
+        </form>
+        <a href="{% url 'billing:invoice_create' %}" class="btn-page-action">
+            <i class="bi bi-plus"></i> Nueva Factura
+        </a>
+    </div>
+</div>
+
+{% if not q %}
+<div class="no-results-card">
+    <i class="bi bi-search"></i>
+    <p>Escribe en el buscador para encontrar facturas, clientes, productos o proveedores.</p>
+</div>
+
+{% elif total == 0 %}
+<div class="no-results-card">
+    <i class="bi bi-emoji-frown"></i>
+    <p>No se encontraron resultados para <strong>"{{ q }}"</strong>.</p>
+</div>
+
+{% else %}
+
+    {% if invoices %}
+    <div class="results-section">
+        <div class="section-header">
+            <div class="section-icon"><i class="bi bi-receipt"></i></div>
+            <span class="section-title">Facturas</span>
+            <span class="section-count">{{ invoices|length }} resultado{{ invoices|length|pluralize:"s" }}</span>
+        </div>
+        <div class="result-card">
+            {% for inv in invoices %}
+            <a href="{% url 'billing:invoice_detail' inv.pk %}" class="result-row">
+                <div class="result-avatar invoice">#{{ inv.id }}</div>
+                <div>
+                    <div class="result-name">Factura #{{ inv.id }} — {{ inv.customer.full_name }}</div>
+                    <div class="result-meta">{{ inv.invoice_date|date:"d/m/Y H:i" }} · CI/RUC: {{ inv.customer.dni }}</div>
+                </div>
+                <span class="result-right">${{ inv.total }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if customers %}
+    <div class="results-section">
+        <div class="section-header">
+            <div class="section-icon"><i class="bi bi-people"></i></div>
+            <span class="section-title">Clientes</span>
+            <span class="section-count">{{ customers|length }} resultado{{ customers|length|pluralize:"s" }}</span>
+        </div>
+        <div class="result-card">
+            {% for c in customers %}
+            <a href="{% url 'billing:customer_list' %}" class="result-row">
+                <div class="result-avatar customer">{{ c.first_name|slice:":1"|upper }}{{ c.last_name|slice:":1"|upper }}</div>
+                <div>
+                    <div class="result-name">{{ c.full_name }}</div>
+                    <div class="result-meta">CI/RUC: {{ c.dni }}{% if c.email %} · {{ c.email }}{% endif %}{% if c.phone %} · {{ c.phone }}{% endif %}</div>
+                </div>
+                <span class="result-right">{% if c.is_active %}Activo{% else %}Inactivo{% endif %}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if products %}
+    <div class="results-section">
+        <div class="section-header">
+            <div class="section-icon"><i class="bi bi-box-seam"></i></div>
+            <span class="section-title">Productos</span>
+            <span class="section-count">{{ products|length }} resultado{{ products|length|pluralize:"s" }}</span>
+        </div>
+        <div class="result-card">
+            {% for p in products %}
+            <a href="{% url 'billing:product_detail' p.pk %}" class="result-row">
+                <div class="result-avatar product">{{ p.name|slice:":2"|upper }}</div>
+                <div>
+                    <div class="result-name">{{ p.name }}</div>
+                    <div class="result-meta">{{ p.brand.name }} · Stock: {{ p.stock }}</div>
+                </div>
+                <span class="result-right">${{ p.unit_price }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if suppliers %}
+    <div class="results-section">
+        <div class="section-header">
+            <div class="section-icon"><i class="bi bi-shop"></i></div>
+            <span class="section-title">Proveedores</span>
+            <span class="section-count">{{ suppliers|length }} resultado{{ suppliers|length|pluralize:"s" }}</span>
+        </div>
+        <div class="result-card">
+            {% for s in suppliers %}
+            <a href="{% url 'billing:supplier_list' %}" class="result-row">
+                <div class="result-avatar supplier">{{ s.name|slice:":2"|upper }}</div>
+                <div>
+                    <div class="result-name">{{ s.name }}</div>
+                    <div class="result-meta">{% if s.contact_name %}{{ s.contact_name }}{% endif %}{% if s.email %} · {{ s.email }}{% endif %}</div>
+                </div>
+                <span class="result-right">{% if s.is_active %}Activo{% else %}Inactivo{% endif %}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+{% endif %}
+
+{% endblock %}

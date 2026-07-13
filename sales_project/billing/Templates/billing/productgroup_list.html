@@ -1,0 +1,50 @@
+{% extends 'billing/base.html' %}
+{% block title %}Grupos de Productos{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Catálogo</div>
+        <h1 class="page-title">Grupos de Productos</h1>
+        <p class="page-subtitle">Categorías para clasificar los productos</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'billing:productgroup_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nuevo Grupo
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="fw-semibold">{{ item.name }}</td>
+                <td>
+                    {% if item.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'billing:productgroup_update' item.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="{% url 'billing:productgroup_delete' item.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center py-4 text-muted">No hay grupos registrados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

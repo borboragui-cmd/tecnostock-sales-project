@@ -1,0 +1,114 @@
+{% extends 'billing/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card shadow">
+    <div class="card-header bg-warning text-dark"><h4>{{ title }}</h4></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Cabecera: seleccionar cliente -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">Cliente</label>
+                {{ form.customer }}
+                {% for error in form.customer.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Líneas de detalle -->
+            <h5 class="mt-4 mb-3">Detalles de la Factura</h5>
+            {{ formset.management_form }}
+
+            <table class="table table-bordered">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Producto</th>
+                        <th style="width:110px">Cantidad</th>
+                        <th style="width:140px">Precio Unitario</th>
+                        <th class="text-center" style="width:70px">Eliminar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail_form in formset %}
+                    <tr>
+                        <td>{{ detail_form.product }}</td>
+                        <td>{{ detail_form.quantity }}</td>
+                        <td>{{ detail_form.unit_price }}</td>
+                        <td class="text-center">
+                            {% if detail_form.instance.pk %}
+                                {{ detail_form.DELETE }}
+                            {% else %}
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="Quitar fila">🗑</button>
+                            {% endif %}
+                        </td>
+                        {{ detail_form.id }}
+                        {% if detail_form.errors %}
+                        <tr>
+                            <td colspan="4" class="text-danger small">
+                                {% for field, errors in detail_form.errors.items %}
+                                    {% for error in errors %}{{ error }} {% endfor %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-save"></i> Guardar Factura
+                </button>
+                <a href="{% url 'billing:invoice_list' %}" class="btn btn-secondary ms-2">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-remove-row').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var row = this.closest('tr');
+        row.querySelectorAll('input, select, textarea').forEach(function (el) {
+            el.value = '';
+        });
+        row.style.display = 'none';
+    });
+});
+
+(function () {
+    var productPrices = {{ products_prices|safe }};
+
+    function fillPrice(selectEl, onlyIfEmpty) {
+        var productId = selectEl.value;
+        if (!productId) return;
+
+        // "details-0-product" → "details-0"
+        var prefix = selectEl.name.slice(0, selectEl.name.lastIndexOf('-product'));
+        var priceInput = document.querySelector('input[name="' + prefix + '-unit_price"]');
+        if (!priceInput) return;
+
+        var price = productPrices[productId];
+        if (price === undefined) return;
+
+        // Si onlyIfEmpty: solo llenar cuando el campo está vacío o es 0
+        if (onlyIfEmpty && priceInput.value && parseFloat(priceInput.value) !== 0) return;
+
+        priceInput.value = price;
+        // Efecto visual para indicar que se llenó automáticamente
+        priceInput.style.transition = 'border-color 0.3s';
+        priceInput.style.borderColor = '#2563EB';
+        setTimeout(function () { priceInput.style.borderColor = ''; }, 1200);
+    }
+
+    document.querySelectorAll('select[name$="-product"]').forEach(function (sel) {
+        // Al cambiar producto: siempre reemplaza el precio
+        sel.addEventListener('change', function () { fillPrice(this, false); });
+        // Al cargar la página: solo llenar si el precio está vacío o es 0
+        fillPrice(sel, true);
+    });
+})();
+</script>
+{% endblock %}

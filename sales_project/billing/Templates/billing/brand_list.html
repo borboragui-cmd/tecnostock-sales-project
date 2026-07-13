@@ -1,0 +1,54 @@
+{% extends 'billing/base.html' %}
+{% block title %}Marcas{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Catálogo</div>
+        <h1 class="page-title">Marcas</h1>
+        <p class="page-subtitle">Gestión de marcas de productos</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'billing:brand_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nueva Marca
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for brand in brands %}
+            <tr>
+                <td class="fw-semibold">{{ brand.name }}</td>
+                <td class="text-muted">{{ brand.description|default:"—"|truncatechars:50 }}</td>
+                <td>
+                    {% if brand.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>{{ brand.created_at|date:"d/m/Y" }}</td>
+                <td>
+                    <a href="{% url 'billing:brand_update' brand.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="{% url 'billing:brand_delete' brand.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">No hay marcas registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

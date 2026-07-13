@@ -1,0 +1,107 @@
+{% extends 'billing/base.html' %}
+{% block title %}Compras{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Compras</div>
+        <h1 class="page-title">Compras</h1>
+        <p class="page-subtitle">Registro de órdenes de compra a proveedores</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'purchasing:purchase_report' %}" class="btn btn-secondary">
+            <i class="bi bi-bar-chart-line"></i> Reporte
+        </a>
+        <a href="{% url 'purchasing:purchase_list_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel-fill"></i> Excel
+        </a>
+        <a href="{% url 'purchasing:purchase_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nueva Compra
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="content-card mb-4">
+    <div class="content-card-header">
+        <span class="content-card-title"><i class="bi bi-funnel me-1"></i> Filtros</span>
+    </div>
+    <div class="content-card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Proveedor</label>
+                <select name="supplier" class="form-select">
+                    <option value="">Todos los proveedores</option>
+                    {% for s in suppliers %}
+                    <option value="{{ s.pk }}" {% if supplier_id == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Desde</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Hasta</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Año</label>
+                <input type="number" name="year" class="form-control" placeholder="Ej: 2024" value="{{ year }}" min="2000" max="2100">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel"></i> Filtrar
+                </button>
+                <a href="{% url 'purchasing:purchase_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Proveedor</th>
+                <th>N° Factura</th>
+                <th>Fecha</th>
+                <th class="text-end">Subtotal</th>
+                <th class="text-end">IVA</th>
+                <th class="text-end">Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for purchase in purchases %}
+            <tr>
+                <td class="fw-semibold">{{ purchase.id }}</td>
+                <td>{{ purchase.supplier }}</td>
+                <td><span class="badge bg-secondary">{{ purchase.document_number }}</span></td>
+                <td>{{ purchase.purchase_date|date:"d/m/Y" }}</td>
+                <td class="text-end">${{ purchase.subtotal|floatformat:2 }}</td>
+                <td class="text-end">${{ purchase.tax|floatformat:2 }}</td>
+                <td class="text-end fw-bold">${{ purchase.total|floatformat:2 }}</td>
+                <td>
+                    <a href="{% url 'purchasing:purchase_detail' purchase.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                    <a href="{% url 'purchasing:purchase_delete' purchase.pk %}" class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No hay compras que coincidan con los filtros.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

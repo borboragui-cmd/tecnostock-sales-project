@@ -1,0 +1,31 @@
+{% extends 'billing/base.html' %}
+{% block title %}Eliminar Compra{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Compras</div>
+        <h1 class="page-title">Eliminar Compra</h1>
+    </div>
+</div>
+
+<div class="delete-confirm-wrap">
+    <div class="delete-confirm-card">
+        <div class="delete-confirm-icon"><i class="bi bi-trash3"></i></div>
+        <div class="delete-confirm-title">¿Confirmar eliminación?</div>
+        <p class="delete-confirm-text">Estás a punto de eliminar la compra:</p>
+        <p class="delete-confirm-name">{{ object }}</p>
+        <p class="delete-confirm-text">Esta acción eliminará todas las líneas de detalle y revertirá el stock de los productos.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="delete-confirm-actions">
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash3"></i> Sí, eliminar
+                </button>
+                <a href="{% url 'purchasing:purchase_list' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

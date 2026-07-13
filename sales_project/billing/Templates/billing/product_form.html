@@ -1,0 +1,155 @@
+{% extends 'billing/base.html' %}
+{% block title %}{% if form.instance.pk %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+{% block content %}
+
+<style>
+    .product-img-zone {
+        background: #F8FAFC;
+        border: 2px dashed #CBD5E1;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+    }
+    .product-img-zone:hover { border-color: #2563EB; }
+    .img-preview {
+        height: 200px; border-radius: 10px; overflow: hidden;
+        border: 1px solid #E2E8F0; margin-top: 14px;
+        display: flex; align-items: center; justify-content: center;
+        background: #F1F5F9;
+    }
+    .img-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+    .img-preview .placeholder { color: #94A3B8; font-size: 0.88rem; }
+    input[type=file] { display: none; }
+    .file-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1.5px solid #2563EB; color: #2563EB;
+        border-radius: 8px; padding: 7px 16px;
+        background: #fff; font-size: 0.85rem; cursor: pointer;
+        transition: background 0.15s;
+    }
+    .file-btn:hover { background: #EFF6FF; }
+    .file-name { font-size: 0.8rem; color: #64748B; margin-top: 8px; }
+</style>
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Catálogo</div>
+        <h1 class="page-title">{% if form.instance.pk %}Editar Producto{% else %}Nuevo Producto{% endif %}</h1>
+    </div>
+    <a href="{% url 'billing:product_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+</div>
+
+<div class="content-card">
+    <div class="content-card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row g-4">
+                <!-- ── Campos ── -->
+                <div class="col-12 col-md-7">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Nombre del Producto</label>
+                            {{ form.name }}
+                            {% for e in form.name.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Precio Unitario</label>
+                            {{ form.unit_price }}
+                            {% for e in form.unit_price.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Stock</label>
+                            {{ form.stock }}
+                            {% for e in form.stock.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Marca</label>
+                            {{ form.brand }}
+                            {% for e in form.brand.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Grupo</label>
+                            {{ form.group }}
+                            {% for e in form.group.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Proveedores</label>
+                            {{ form.suppliers }}
+                            {% for e in form.suppliers.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Descripción</label>
+                            {{ form.description }}
+                            {% for e in form.description.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch d-flex align-items-center gap-2">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-semibold">Activo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Imagen ── -->
+                <div class="col-12 col-md-5">
+                    <div class="product-img-zone">
+                        <i class="bi bi-image" style="font-size:1.5rem; color:#94A3B8; display:block; margin-bottom:10px;"></i>
+                        <p class="text-muted small mb-3">Imagen del producto</p>
+                        {{ form.image }}
+                        <label for="{{ form.image.id_for_label }}" class="file-btn">
+                            <i class="bi bi-upload"></i> Seleccionar archivo
+                        </label>
+                        <div class="file-name" id="fileSelectedText">
+                            {% if form.instance.image %}{{ form.instance.image.name|slice:"7:" }}{% else %}Sin archivo{% endif %}
+                        </div>
+                        {% for e in form.image.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="img-preview" id="imagePreviewContainer">
+                        {% if form.instance.image %}
+                            <img id="imagePreview" src="{{ form.instance.image.url }}" alt="Vista previa">
+                        {% else %}
+                            <span class="placeholder"><i class="bi bi-image me-1"></i> Vista previa</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check2"></i> Guardar Producto
+                </button>
+                <a href="{% url 'billing:product_list' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var input = document.querySelector('input[type=file]');
+    if (!input) return;
+    input.addEventListener('change', function () {
+        var file = this.files[0];
+        var text = document.getElementById('fileSelectedText');
+        var container = document.getElementById('imagePreviewContainer');
+        if (!file) { text.textContent = 'Sin archivo'; return; }
+        text.textContent = file.name;
+        var url = URL.createObjectURL(file);
+        var img = document.getElementById('imagePreview');
+        if (img) {
+            img.src = url;
+        } else {
+            container.innerHTML = '<img id="imagePreview" src="' + url + '" alt="Vista previa">';
+        }
+    });
+})();
+</script>
+
+{% endblock %}

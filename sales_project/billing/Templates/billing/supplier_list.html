@@ -1,0 +1,56 @@
+{% extends 'billing/base.html' %}
+{% block title %}Proveedores{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Abastecimiento</div>
+        <h1 class="page-title">Proveedores</h1>
+        <p class="page-subtitle">Empresas y contactos que abastecen el inventario</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'billing:supplier_create' %}" class="btn-page-action">
+            <i class="bi bi-plus-lg"></i> Nuevo Proveedor
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th>Contacto</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="fw-semibold">{{ item.name }}</td>
+                <td>{{ item.contact_name|default:"—" }}</td>
+                <td>{{ item.email|default:"—" }}</td>
+                <td>{{ item.phone|default:"—" }}</td>
+                <td>
+                    {% if item.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'billing:supplier_update' item.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="{% url 'billing:supplier_delete' item.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">No hay proveedores registrados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
