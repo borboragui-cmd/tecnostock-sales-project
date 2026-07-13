@@ -10,6 +10,9 @@ from django.http import HttpResponse
 from decimal import Decimal
 from django.db import transaction
 from django.db.models import Q, Sum, F, Avg
+from django.db.models.deletion import ProtectedError
+from django.core.exceptions import ValidationError
+from creditos_ventas import services as creditos_services
 from django.utils import timezone
 from datetime import timedelta, datetime
 from io import BytesIO
@@ -33,6 +36,8 @@ from shared.decorators import audit_action
 def home(request):
     """Vista principal del sistema. Muestra resumen general."""
     from purchasing.models import Purchase, PurchaseDetail
+    from creditos_ventas.models import CuotaVenta
+    from creditos_compras.models import CuotaCompra
 
     low_stock_qs = Product.objects.filter(stock__lte=5, is_active=True)
     low_stock_count = low_stock_qs.count()
@@ -79,6 +84,22 @@ def home(request):
     total_invoices   = active_invoices.count()
     total_sales      = active_invoices.aggregate(s=Sum('total'))['s'] or 0
 
+    cartera_pendiente = Invoice.objects.filter(
+        tipo_pago='CREDITO', estado='PENDIENTE'
+    ).aggregate(total=Sum('saldo'))['total'] or 0
+
+    cuotas_vencidas = CuotaVenta.objects.filter(
+        estado='PENDIENTE', fecha_vencimiento__lt=timezone.now().date()
+    ).count()
+
+    cuentas_por_pagar = Purchase.objects.filter(
+        tipo_pago='CREDITO', estado='PENDIENTE'
+    ).aggregate(total=Sum('saldo'))['total'] or 0
+
+    cuotas_compra_vencidas = CuotaCompra.objects.filter(
+        estado='PENDIENTE', fecha_vencimiento__lt=timezone.now().date()
+    ).count()
+
     context = {
         'total_brands': Brand.objects.count(),
         'total_products': Product.objects.filter(is_active=True).count(),
@@ -94,6 +115,10 @@ def home(request):
         'purchase_report': purchase_report,
         'total_purchases': total_purchases,
         'total_purchase_count': total_purchase_count,
+        'cartera_pendiente': cartera_pendiente,
+        'cuotas_vencidas': cuotas_vencidas,
+        'cuentas_por_pagar': cuentas_por_pagar,
+        'cuotas_compra_vencidas': cuotas_compra_vencidas,
     }
     return render(request, 'billing/home.html', context)
 
@@ -498,26 +523,35 @@ def invoice_create(request):
         form = InvoiceForm(request.POST)
         formset = InvoiceDetailFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
-            with transaction.atomic():
-                invoice = form.save(commit=False)
-                invoice.save()
-                formset.instance = invoice
-                formset.save()
-                # Calcular subtotal, IVA 15% y total
-                subtotal = sum(d.subtotal for d in invoice.details.all())
-                invoice.subtotal = subtotal
-                invoice.tax = subtotal * Decimal('0.15')
-                invoice.total = invoice.subtotal + invoice.tax
-                invoice.save()
-                # Descontar stock — dentro del atomic para que sea todo-o-nada
-                for detail in invoice.details.all():
-                    Product.objects.filter(pk=detail.product.pk).update(
-                        stock=F('stock') - detail.quantity
+            try:
+                with transaction.atomic():
+                    invoice = form.save(commit=False)
+                    invoice.save()
+                    formset.instance = invoice
+                    formset.save()
+                    # Calcular subtotal, IVA 15% y total
+                    subtotal = sum(d.subtotal for d in invoice.details.all())
+                    invoice.subtotal = subtotal
+                    invoice.tax = subtotal * Decimal('0.15')
+                    invoice.total = invoice.subtotal + invoice.tax
+                    invoice.save()
+                    # Descontar stock — dentro del atomic para que sea todo-o-nada
+                    for detail in invoice.details.all():
+                        Product.objects.filter(pk=detail.product.pk).update(
+                            stock=F('stock') - detail.quantity
+                        )
+                    creditos_services.procesar_tipo_pago(
+                        invoice,
+                        form.cleaned_data['tipo_pago'],
+                        form.cleaned_data.get('num_cuotas'),
                     )
-            messages.success(
-                request, f'Factura #{invoice.id} creada. Total: ${invoice.total}'
-            )
-            return redirect('billing:invoice_list')
+            except ValidationError as e:
+                messages.error(request, str(e))
+            else:
+                messages.success(
+                    request, f'Factura #{invoice.numero} creada. Total: ${invoice.total}'
+                )
+                return redirect('billing:invoice_list')
 
     else:
         form = InvoiceForm()
@@ -549,7 +583,16 @@ def invoice_delete(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
     if request.method == 'POST':
         invoice_id = invoice.id
-        invoice.delete()
+        invoice_numero = invoice.numero
+        try:
+            invoice.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                f'No se puede eliminar la Factura #{invoice_numero}: tiene cuotas de '
+                f'crédito asociadas. Elimina o reasigna las cuotas primero.'
+            )
+            return redirect('billing:invoice_list')
         messages.success(request, f'Invoice #{invoice_id} deleted!')
         return redirect('billing:invoice_list')
     return render(request, 'billing/invoice_confirm_delete.html', {'object': invoice})

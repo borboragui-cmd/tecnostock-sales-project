@@ -23,6 +23,17 @@
                         <div class="text-danger small">{{ error }}</div>
                     {% endfor %}
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Tipo de Pago</label>
+                    {{ form.tipo_pago }}
+                </div>
+                <div class="col-md-6 mb-3" id="div_num_cuotas" style="display:none;">
+                    <label class="form-label fw-bold">Número de Cuotas</label>
+                    {{ form.num_cuotas }}
+                    {% for error in form.num_cuotas.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
                 {% if form.non_field_errors %}
                 <div class="col-12">
                     {% for error in form.non_field_errors %}
@@ -107,6 +118,16 @@ document.querySelectorAll('select[name$="-product"]').forEach(function (sel) {
         var costInput = document.querySelector('input[name="' + prefix + '-unit_cost"]');
         if (costInput) costInput.value = '';
     });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const tipoPago = document.getElementById('id_tipo_pago');
+    const divCuotas = document.getElementById('div_num_cuotas');
+    function toggle() {
+        divCuotas.style.display = (tipoPago.value === 'CREDITO') ? 'block' : 'none';
+    }
+    tipoPago.addEventListener('change', toggle);
+    toggle();
 });
 </script>
 {% endblock %}

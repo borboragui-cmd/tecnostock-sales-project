@@ -1,0 +1,48 @@
+{% extends 'billing/base.html' %}
+{% block title %}Pago Registrado{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Créditos a Proveedores</div>
+        <h1 class="page-title">Pago Registrado</h1>
+        <p class="page-subtitle">Comprobante del último lote de pagos registrado</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'creditos_compras:comprobante_lote_pdf' %}" target="_blank" class="btn btn-secondary">
+            <i class="bi bi-file-earmark-pdf"></i> Descargar PDF
+        </a>
+        <a href="{% url 'creditos_compras:cuotas_pendientes' %}" class="btn-page-action">
+            <i class="bi bi-arrow-left"></i> Volver a cuotas pendientes
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Compra</th>
+                <th>Proveedor</th>
+                <th class="text-center">Cuota N°</th>
+                <th>Fecha</th>
+                <th class="text-end">Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pago in pagos %}
+            <tr>
+                <td class="fw-semibold">{{ pago.cuota.compra.numero }}</td>
+                <td>{{ pago.cuota.compra.supplier }}</td>
+                <td class="text-center">{{ pago.cuota.numero }}</td>
+                <td>{{ pago.fecha|date:"d/m/Y" }}</td>
+                <td class="text-end">${{ pago.valor }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">No hay pagos en este comprobante.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

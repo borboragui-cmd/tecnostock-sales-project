@@ -1,0 +1,82 @@
+{% extends 'billing/base.html' %}
+{% block title %}Registrar Pagos{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Créditos a Proveedores</div>
+        <h1 class="page-title">Registrar Pagos</h1>
+        <p class="page-subtitle">Compra {{ compra.numero }} — {{ compra.supplier }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'creditos_compras:cuotas_pendientes' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="content-card mb-4">
+    <div class="content-card-body">
+        <div class="row">
+            <div class="col-md-3"><strong>Compra:</strong> {{ compra.numero }}</div>
+            <div class="col-md-3"><strong>Proveedor:</strong> {{ compra.supplier }}</div>
+            <div class="col-md-3"><strong>Total:</strong> ${{ compra.total }}</div>
+            <div class="col-md-3"><strong>Saldo:</strong> ${{ compra.saldo }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="content-card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ formset.management_form }}
+
+            <table class="table table-bordered">
+                <thead class="table-secondary">
+                    <tr>
+                        <th class="text-center" style="width:60px">Pagar</th>
+                        <th class="text-center">N° Cuota</th>
+                        <th>Vencimiento</th>
+                        <th class="text-end">Saldo</th>
+                        <th style="width:140px">Valor a pagar</th>
+                        <th style="width:160px">Fecha</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form, cuota in filas %}
+                    <tr>
+                        <td class="text-center">{{ form.pagar }}{{ form.cuota_id }}</td>
+                        <td class="text-center">{{ cuota.numero }}</td>
+                        <td>{{ cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
+                        <td class="text-end">${{ cuota.saldo }}</td>
+                        <td>{{ form.valor }}</td>
+                        <td>{{ form.fecha }}</td>
+                        <td>{{ form.observacion }}</td>
+                    </tr>
+                    {% if form.errors %}
+                    <tr>
+                        <td colspan="7" class="text-danger small">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}{{ error }} {% endfor %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center py-4 text-muted">Esta compra no tiene cuotas pendientes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if filas %}
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Registrar pagos
+            </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% endblock %}

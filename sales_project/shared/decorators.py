@@ -1,5 +1,7 @@
 ﻿import logging
 from functools import wraps
+from django.contrib import messages
+from django.shortcuts import redirect
 from django.utils import timezone
 
 logger = logging.getLogger('audit')
@@ -23,5 +25,26 @@ def audit_action(action_name):
                 print(f'[AUDIT] {timestamp} | COMPLETED: {action_name} by {user}')
             
             return response
+        return wrapper
+    return decorator
+
+
+def staff_required(redirect_url='/', error_message='No tienes permiso para esta acción. Se requiere acceso de staff.'):
+    """
+    Equivalente a StaffRequiredMixin (shared/mixins.py) pero para
+    vistas basadas en función.
+    Uso:
+        @login_required
+        @staff_required(redirect_url='creditos_ventas:cuotas_pendientes')
+        def mi_vista(request):
+            ...
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_staff:
+                messages.error(request, error_message)
+                return redirect(redirect_url)
+            return view_func(request, *args, **kwargs)
         return wrapper
     return decorator

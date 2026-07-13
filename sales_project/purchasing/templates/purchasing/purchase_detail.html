@@ -42,6 +42,28 @@
                 <p class="mb-0"><span class="text-muted small">Fecha</span><br>{{ purchase.purchase_date|date:"d/m/Y H:i" }}</p>
             </div>
         </div>
+
+        {% if purchase.tipo_pago == 'CREDITO' %}
+        <div class="alert alert-info mt-3">
+            <strong>Compra a Crédito</strong> — Estado:
+            <span class="badge bg-{% if purchase.estado == 'PAGADA' %}success{% else %}warning{% endif %}">
+                {{ purchase.estado }}
+            </span>
+            | Saldo pendiente: <strong>${{ purchase.saldo }}</strong>
+            <div class="mt-2">
+                <a href="{% url 'creditos_compras:plan_pagos_pdf' purchase.pk %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    Imprimir Plan de Pagos (PDF)
+                </a>
+                <a href="{% url 'creditos_compras:registrar_pagos' purchase.pk %}" class="btn btn-sm btn-outline-success">
+                    Registrar Pago
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success mt-3">
+            <strong>Compra al Contado</strong> — Compra cancelada.
+        </div>
+        {% endif %}
     </div>
 
     <div class="col-lg-8">

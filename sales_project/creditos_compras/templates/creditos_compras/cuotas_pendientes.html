@@ -1,0 +1,62 @@
+{% extends 'billing/base.html' %}
+{% block title %}Cuotas Pendientes (Compras){% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Créditos a Proveedores</div>
+        <h1 class="page-title">Cuotas Pendientes</h1>
+        <p class="page-subtitle">Cuotas de compras a crédito aún no canceladas</p>
+    </div>
+    <div class="page-actions">
+        <a href="?export=pdf" class="btn btn-secondary">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+        </a>
+        <a href="?export=excel" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel-fill"></i> Excel
+        </a>
+        <a href="{% url 'creditos_compras:cuota_list' %}" class="btn btn-secondary">
+            <i class="bi bi-list-ul"></i> Ver todas las cuotas
+        </a>
+        <a href="{% url 'creditos_compras:historial_pagos' %}" class="btn btn-secondary">
+            <i class="bi bi-clock-history"></i> Historial de pagos
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Compra</th>
+                <th>Proveedor</th>
+                <th class="text-center">N° Cuota</th>
+                <th>Vencimiento</th>
+                <th class="text-end">Valor</th>
+                <th class="text-end">Saldo</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cuota in cuotas %}
+            <tr>
+                <td class="fw-semibold">{{ cuota.compra.numero }}</td>
+                <td>{{ cuota.compra.supplier }}</td>
+                <td class="text-center">{{ cuota.numero }}</td>
+                <td>{{ cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
+                <td class="text-end">${{ cuota.valor }}</td>
+                <td class="text-end fw-bold">${{ cuota.saldo }}</td>
+                <td>
+                    <a href="{% url 'creditos_compras:registrar_pagos' cuota.compra.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-cash-coin"></i> Pagar
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">No hay cuotas pendientes.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

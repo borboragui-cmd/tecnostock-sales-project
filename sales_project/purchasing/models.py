@@ -6,6 +6,7 @@ from billing.models import Supplier, Product
 
 class Purchase(models.Model):
     """Cabecera de compra. Documenta una adquisición a un proveedor."""
+    numero = models.CharField(max_length=20, unique=True, blank=True, null=False)
     supplier = models.ForeignKey(
         Supplier, on_delete=models.PROTECT, related_name='purchases'
     )
@@ -17,6 +18,14 @@ class Purchase(models.Model):
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
+
+    tipo_pago = models.CharField(
+        max_length=10, choices=[('CONTADO', 'CONTADO'), ('CREDITO', 'CREDITO')], default='CONTADO'
+    )
+    saldo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    estado = models.CharField(
+        max_length=15, choices=[('PENDIENTE', 'PENDIENTE'), ('PAGADA', 'PAGADA')], default='PENDIENTE'
+    )
 
     class Meta:
         verbose_name = 'Purchase'
@@ -30,7 +39,19 @@ class Purchase(models.Model):
         ]
 
     def __str__(self):
-        return f'Purchase #{self.id} - {self.supplier}'
+        return f'Purchase #{self.numero or self.id} - {self.supplier}'
+
+    def save(self, *args, **kwargs):
+        """
+        Guarda en dos fases: primero para obtener el pk (necesario para
+        construir el número interno), luego actualiza solo ese campo.
+        Mismo patrón que Invoice.numero (billing/models.py), con prefijo ORD-.
+        """
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new and not self.numero:
+            self.numero = f'ORD-{self.pk:06d}'
+            super().save(update_fields=['numero'])
 
 
 class PurchaseDetail(models.Model):

@@ -4,6 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.db import transaction
 from django.db.models import F, Avg, Sum, Count
+from django.db.models.deletion import ProtectedError
+from django.core.exceptions import ValidationError
+from creditos_compras import services as creditos_compras_services
 
 from decimal import Decimal
 from io import BytesIO
@@ -66,26 +69,35 @@ def purchase_create(request):
         form = PurchaseForm(request.POST)
         formset = PurchaseDetailFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
-            with transaction.atomic():
-                purchase = form.save(commit=False)
-                purchase.save()
-                formset.instance = purchase
-                formset.save()
+            try:
+                with transaction.atomic():
+                    purchase = form.save(commit=False)
+                    purchase.save()
+                    formset.instance = purchase
+                    formset.save()
 
-                details = purchase.details.all()
-                subtotal = sum(d.subtotal for d in details)
-                purchase.subtotal = subtotal
-                purchase.tax = subtotal * Decimal('0.15')
-                purchase.total = purchase.subtotal + purchase.tax
-                purchase.save()
+                    details = purchase.details.all()
+                    subtotal = sum(d.subtotal for d in details)
+                    purchase.subtotal = subtotal
+                    purchase.tax = subtotal * Decimal('0.15')
+                    purchase.total = purchase.subtotal + purchase.tax
+                    purchase.save()
 
-                for detail in details:
-                    Product.objects.filter(pk=detail.product.pk).update(
-                        stock=F('stock') + detail.quantity
+                    for detail in details:
+                        Product.objects.filter(pk=detail.product.pk).update(
+                            stock=F('stock') + detail.quantity
+                        )
+
+                    creditos_compras_services.procesar_tipo_pago(
+                        purchase,
+                        form.cleaned_data['tipo_pago'],
+                        form.cleaned_data.get('num_cuotas'),
                     )
-
-            messages.success(request, f'Compra #{purchase.id} registrada. Total: ${purchase.total}')
-            return redirect('purchasing:purchase_list')
+            except ValidationError as e:
+                messages.error(request, str(e))
+            else:
+                messages.success(request, f'Compra #{purchase.numero} registrada. Total: ${purchase.total}')
+                return redirect('purchasing:purchase_list')
     else:
         form = PurchaseForm()
         formset = PurchaseDetailFormSet()
@@ -118,13 +130,22 @@ def purchase_delete(request, pk):
         pk=pk,
     )
     if request.method == 'POST':
-        with transaction.atomic():
-            for detail in purchase.details.all():
-                Product.objects.filter(pk=detail.product.pk).update(
-                    stock=F('stock') - detail.quantity
-                )
-            purchase_id = purchase.id
-            purchase.delete()
+        purchase_id = purchase.id
+        purchase_numero = purchase.numero
+        try:
+            with transaction.atomic():
+                for detail in purchase.details.all():
+                    Product.objects.filter(pk=detail.product.pk).update(
+                        stock=F('stock') - detail.quantity
+                    )
+                purchase.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                f'No se puede eliminar la Compra #{purchase_numero}: tiene cuotas de '
+                f'crédito asociadas. Elimina o reasigna las cuotas primero.'
+            )
+            return redirect('purchasing:purchase_list')
         messages.success(request, f'Compra #{purchase_id} eliminada y stock revertido.')
         return redirect('purchasing:purchase_list')
     return render(request, 'purchasing/purchase_confirm_delete.html', {'object': purchase})

@@ -109,15 +109,48 @@ class CustomerProfile(models.Model):
     def __str__(self): return f'Profile: {self.customer}'
 
 class Invoice(models.Model):
-    """Cabecera de factura."""
+    """Cabecera de factura. Ahora soporta ventas al contado y a crédito."""
+
+    TIPO_PAGO_CHOICES = [
+        ('CONTADO', 'CONTADO'),
+        ('CREDITO', 'CREDITO'),
+    ]
+    ESTADO_CHOICES = [
+        ('PENDIENTE', 'PENDIENTE'),
+        ('PAGADA', 'PAGADA'),
+    ]
+
+    numero = models.CharField(
+        max_length=20, unique=True, blank=True, null=False,
+        verbose_name='Número de Factura'
+    )
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='invoices')
     invoice_date = models.DateTimeField(auto_now_add=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
-    class Meta: ordering = ['-invoice_date']
-    def __str__(self): return f'Invoice #{self.id} - {self.customer}'
+
+    tipo_pago = models.CharField(max_length=10, choices=TIPO_PAGO_CHOICES, default='CONTADO')
+    saldo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='PENDIENTE')
+
+    class Meta:
+        ordering = ['-invoice_date']
+
+    def __str__(self):
+        return f'Invoice #{self.numero or self.id} - {self.customer}'
+
+    def save(self, *args, **kwargs):
+        """
+        Guarda en dos fases: primero para obtener el pk (necesario para
+        construir el número de factura), luego actualiza solo ese campo.
+        """
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new and not self.numero:
+            self.numero = f'FAC-{self.pk:06d}'
+            super().save(update_fields=['numero'])
 
 class InvoiceDetail(models.Model):
     """Líneas de factura."""

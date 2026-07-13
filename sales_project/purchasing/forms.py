@@ -5,15 +5,21 @@ from .models import Purchase, PurchaseDetail
 
 
 class PurchaseForm(forms.ModelForm):
+    num_cuotas = forms.IntegerField(
+        required=False, min_value=1, label='Número de cuotas',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_num_cuotas'})
+    )
+
     class Meta:
         model = Purchase
-        fields = ['supplier', 'document_number']
+        fields = ['supplier', 'document_number', 'tipo_pago']
         widgets = {
             'supplier': forms.Select(attrs={'class': 'form-select'}),
             'document_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ej: FAC-001',
             }),
+            'tipo_pago': forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo_pago'}),
         }
 
     def clean(self):
@@ -30,6 +36,13 @@ class PurchaseForm(forms.ModelForm):
                     f'Ya existe una compra con el N° "{document_number}" '
                     f'para el proveedor "{supplier}". Verifique el número de documento.'
                 )
+
+        if cleaned_data.get('tipo_pago') == 'CREDITO':
+            if not cleaned_data.get('num_cuotas'):
+                raise ValidationError('Debes indicar el número de cuotas para una compra a crédito.')
+        else:
+            cleaned_data['num_cuotas'] = None
+
         return cleaned_data
 
 

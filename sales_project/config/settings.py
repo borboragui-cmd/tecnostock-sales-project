@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from decimal import Decimal
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'billing',
     'purchasing',
+    'creditos_ventas',
+    'creditos_compras',
     #user apps
    'debug_toolbar',
    'django_extensions',
@@ -127,3 +130,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 LOGIN_URL = '/accounts/login/'
+
+
+# Reglas de negocio — módulos de crédito (creditos_ventas / creditos_compras)
+# Única fuente de verdad para estos valores: no hardcodear en services.py.
+
+TASA_MORA_DESCUENTO_MENSUAL = Decimal('0.02')  # 2% mensual, mora y descuento
+PAGO_MINIMO_CUOTA = Decimal('5.00')  # monto fijo mínimo por pago parcial, en dólares

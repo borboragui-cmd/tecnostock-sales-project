@@ -38,6 +38,28 @@
                 {% endif %}
             </div>
         </div>
+
+        {% if invoice.tipo_pago == 'CREDITO' %}
+        <div class="alert alert-info mt-3">
+            <strong>Venta a Crédito</strong> — Estado:
+            <span class="badge bg-{% if invoice.estado == 'PAGADA' %}success{% else %}warning{% endif %}">
+                {{ invoice.estado }}
+            </span>
+            | Saldo pendiente: <strong>${{ invoice.saldo }}</strong>
+            <div class="mt-2">
+                <a href="{% url 'creditos_ventas:plan_pagos_pdf' invoice.pk %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    Imprimir Plan de Pagos (PDF)
+                </a>
+                <a href="{% url 'creditos_ventas:registrar_pagos' invoice.pk %}" class="btn btn-sm btn-outline-success">
+                    Registrar Pago
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success mt-3">
+            <strong>Venta al Contado</strong> — Factura cancelada.
+        </div>
+        {% endif %}
     </div>
 
     <div class="col-lg-8">

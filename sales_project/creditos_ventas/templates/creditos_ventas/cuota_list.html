@@ -1,0 +1,69 @@
+{% extends 'billing/base.html' %}
+{% block title %}Cuotas de Venta{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Créditos</div>
+        <h1 class="page-title">Cuotas de Venta</h1>
+        <p class="page-subtitle">Listado completo de cuotas (pendientes y pagadas) para auditoría</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'creditos_ventas:cuotas_pendientes' %}" class="btn btn-secondary">
+            <i class="bi bi-hourglass-split"></i> Solo pendientes
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Factura</th>
+                <th>Cliente</th>
+                <th class="text-center">N° Cuota</th>
+                <th>Vencimiento</th>
+                <th class="text-end">Valor</th>
+                <th class="text-end">Saldo</th>
+                <th class="text-center">Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cuota in items %}
+            <tr>
+                <td class="fw-semibold">{{ cuota.factura.numero }}</td>
+                <td>{{ cuota.factura.customer }}</td>
+                <td class="text-center">{{ cuota.numero }}</td>
+                <td>{{ cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
+                <td class="text-end">${{ cuota.valor }}</td>
+                <td class="text-end fw-bold">${{ cuota.saldo }}</td>
+                <td class="text-center">
+                    {% if cuota.estado == 'PAGADA' %}
+                        <span class="badge badge-success">PAGADA</span>
+                    {% else %}
+                        <span class="badge badge-danger">PENDIENTE</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">No hay cuotas registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+        {% endif %}
+        <li class="page-item active"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

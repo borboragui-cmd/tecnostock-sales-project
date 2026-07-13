@@ -464,6 +464,48 @@
             </div>
         </div>
 
+        <!-- KPI CARDS: CRÉDITO -->
+        <div class="kpi-row" style="grid-template-columns: repeat(2,1fr);">
+            <div class="kpi-card">
+                <div class="kpi-label">Cartera Pendiente</div>
+                <div class="kpi-value">${{ cartera_pendiente|floatformat:2 }}</div>
+                <span class="badge-pill" style="background:#E2E8F0; color:#334155;">Ventas a crédito</span>
+                <span class="badge-text">saldo por cobrar</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Cuotas Vencidas</div>
+                <div class="kpi-value">{{ cuotas_vencidas }} cuota{{ cuotas_vencidas|pluralize:"s" }}</div>
+                {% if cuotas_vencidas > 0 %}
+                    <a href="{% url 'creditos_ventas:cuotas_pendientes' %}" class="badge-pill badge-alert" style="text-decoration:none;">Ver cuotas</a>
+                    <span class="badge-text">requieren cobro</span>
+                {% else %}
+                    <span class="badge-pill badge-ok">OK</span>
+                    <span class="badge-text">Sin cuotas vencidas</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- KPI CARDS: CRÉDITO A PROVEEDORES -->
+        <div class="kpi-row" style="grid-template-columns: repeat(2,1fr);">
+            <div class="kpi-card">
+                <div class="kpi-label">Cuentas por Pagar</div>
+                <div class="kpi-value">${{ cuentas_por_pagar|floatformat:2 }}</div>
+                <span class="badge-pill" style="background:#E2E8F0; color:#334155;">Compras a crédito</span>
+                <span class="badge-text">saldo por pagar</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Cuotas de Compra Vencidas</div>
+                <div class="kpi-value">{{ cuotas_compra_vencidas }} cuota{{ cuotas_compra_vencidas|pluralize:"s" }}</div>
+                {% if cuotas_compra_vencidas > 0 %}
+                    <a href="{% url 'creditos_compras:cuotas_pendientes' %}" class="badge-pill badge-alert" style="text-decoration:none;">Ver cuotas</a>
+                    <span class="badge-text">requieren pago</span>
+                {% else %}
+                    <span class="badge-pill badge-ok">OK</span>
+                    <span class="badge-text">Sin cuotas vencidas</span>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- BOTTOM GRID -->
         <div class="bottom-grid">
 
