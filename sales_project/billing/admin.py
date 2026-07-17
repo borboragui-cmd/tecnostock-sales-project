@@ -39,4 +39,14 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_display = ['id', 'customer', 'invoice_date', 'total']
     inlines = [InvoiceDetailInline]
 
+    def get_readonly_fields(self, request, obj=None):
+        """Segunda capa de protección (la primera es Invoice.save(), ver
+        modelo) — auditoría 2026-07-17: una factura PAGADA no debe poder
+        editarse tampoco desde el admin. Todos los campos quedan de solo
+        lectura, no solo los inmutables, para que el admin funcione como
+        vista de consulta y no de edición sobre facturas cerradas."""
+        if obj is not None and obj.estado == 'PAGADA':
+            return [f.name for f in self.model._meta.fields if f.name != 'id']
+        return super().get_readonly_fields(request, obj)
+
  

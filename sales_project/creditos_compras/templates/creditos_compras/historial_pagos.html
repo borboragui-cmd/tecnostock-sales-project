@@ -2,6 +2,18 @@
 {% block title %}Historial de Pagos{% endblock %}
 {% block content %}
 
+<style>
+.list-table thead th {
+    background-color: var(--surface); color: var(--text-secondary);
+    text-transform: uppercase; font-weight: 600; font-size: 0.72rem;
+    letter-spacing: 0.05em; border-top: none; border-bottom: 2px solid var(--border-strong);
+}
+.list-table tbody tr td { border-top: none; border-bottom: 1px solid var(--border); }
+.list-table tbody tr:last-child td { border-bottom: none; }
+.list-table tbody tr:hover td { background-color: var(--surface); }
+.list-table .text-end { font-variant-numeric: tabular-nums; }
+</style>
+
 <div class="page-header">
     <div>
         <div class="page-label">Créditos a Proveedores</div>
@@ -16,7 +28,7 @@
 </div>
 
 <div class="content-card">
-    <table class="table mb-0">
+    <table class="table list-table mb-0">
         <thead>
             <tr>
                 <th>Compra</th>

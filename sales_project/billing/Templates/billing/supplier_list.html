@@ -1,6 +1,24 @@
 {% extends 'billing/base.html' %}
+{% load security_tags %}
 {% block title %}Proveedores{% endblock %}
 {% block content %}
+
+<style>
+.list-table thead th {
+    background-color: var(--surface); color: var(--text-secondary);
+    text-transform: uppercase; font-weight: 600; font-size: 0.72rem;
+    letter-spacing: 0.05em; border-top: none; border-bottom: 2px solid var(--border-strong);
+}
+.list-table tbody tr td { border-top: none; border-bottom: 1px solid var(--border); }
+.list-table tbody tr:last-child td { border-bottom: none; }
+.list-table tbody tr:hover td { background-color: var(--surface); }
+.list-table .text-end { font-variant-numeric: tabular-nums; }
+.list-table .btn-action {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 6px; font-size: 12px; padding: 5px 11px; font-weight: 500;
+}
+.list-table .btn-action.disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
 
 <div class="page-header">
     <div>
@@ -9,14 +27,20 @@
         <p class="page-subtitle">Empresas y contactos que abastecen el inventario</p>
     </div>
     <div class="page-actions">
-        <a href="{% url 'billing:supplier_create' %}" class="btn-page-action">
-            <i class="bi bi-plus-lg"></i> Nuevo Proveedor
-        </a>
+        {% if user|has_group:'Analista de Compras' or user.is_superuser %}
+            <a href="{% url 'billing:supplier_create' %}" class="btn-page-action">
+                <i class="bi bi-plus-lg"></i> Nuevo Proveedor
+            </a>
+        {% else %}
+            <button class="btn-page-action disabled" disabled title="No tienes permiso para crear en esta área">
+                <i class="bi bi-plus-lg"></i> Nuevo Proveedor
+            </button>
+        {% endif %}
     </div>
 </div>
 
 <div class="content-card">
-    <table class="table mb-0">
+    <table class="table list-table mb-0">
         <thead>
             <tr>
                 <th>Empresa</th>
@@ -42,8 +66,13 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'billing:supplier_update' item.pk %}" class="btn btn-sm btn-warning">Editar</a>
-                    <a href="{% url 'billing:supplier_delete' item.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                    {% if user|has_group:'Analista de Compras' or user.is_superuser %}
+                        <a href="{% url 'billing:supplier_update' item.pk %}" class="btn btn-sm btn-warning btn-action"><i class="bi bi-pencil"></i> Editar</a>
+                        <a href="{% url 'billing:supplier_delete' item.pk %}" class="btn btn-sm btn-danger btn-action"><i class="bi bi-trash"></i> Eliminar</a>
+                    {% else %}
+                        <button class="btn btn-sm btn-warning btn-action disabled" disabled title="No tienes permiso para editar en esta área"><i class="bi bi-pencil"></i> Editar</button>
+                        <button class="btn btn-sm btn-danger btn-action disabled" disabled title="No tienes permiso para eliminar en esta área"><i class="bi bi-trash"></i> Eliminar</button>
+                    {% endif %}
                 </td>
             </tr>
             {% empty %}

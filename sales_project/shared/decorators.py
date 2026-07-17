@@ -29,6 +29,27 @@ def audit_action(action_name):
     return decorator
 
 
+def group_required(group_names, redirect_url='/', error_message='No tienes permiso para acceder a esta opción.'):
+    """
+    Equivalente a GroupRequiredMixin (shared/mixins.py) pero para vistas
+    basadas en función. El superusuario siempre pasa.
+    Uso:
+        @login_required
+        @group_required(['Vendedor', 'Administrador'])
+        def mi_vista(request):
+            ...
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if request.user.is_superuser or request.user.groups.filter(name__in=group_names).exists():
+                return view_func(request, *args, **kwargs)
+            messages.error(request, error_message)
+            return redirect(redirect_url)
+        return wrapper
+    return decorator
+
+
 def staff_required(redirect_url='/', error_message='No tienes permiso para esta acción. Se requiere acceso de staff.'):
     """
     Equivalente a StaffRequiredMixin (shared/mixins.py) pero para

@@ -238,3 +238,26 @@ class ExportMixin:
             messages.error(self.request, f'Error al generar el Excel: {str(e)}')
             return redirect(self.request.path)
 
+
+class GroupRequiredMixin:
+    """
+    Verifica si el usuario pertenece a alguno de los roles (grupos) indicados
+    en group_required. El superusuario siempre pasa.
+    Uso:
+        class AlgunaView(LoginRequiredMixin, GroupRequiredMixin, ListView):
+            group_required = ['Administrador']
+    """
+    group_required = []
+    group_redirect_url = '/'
+    group_error_message = 'No tienes permiso para acceder a esta opción.'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        if request.user.groups.filter(name__in=self.group_required).exists():
+            return super().dispatch(request, *args, **kwargs)
+        messages.error(request, self.group_error_message)
+        return redirect(self.group_redirect_url)
+

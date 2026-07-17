@@ -11,7 +11,15 @@ class PagoCuotaForm(forms.Form):
     )
     fecha = forms.DateField(
         required=False,
-        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+        # readonly: la fecha de pago siempre es hoy (services.registrar_pago
+        # la ignora y usa timezone.localdate() de todos modos) — el input
+        # queda de solo lectura para que no parezca seleccionable cuando en
+        # realidad no hace nada. format='%Y-%m-%d' explícito porque un
+        # <input type="date"> exige ISO en el atributo value, no el
+        # DD/MM/YYYY que usa el resto del sitio (es-ec).
+        widget=forms.DateInput(attrs={
+            'class': 'form-control', 'type': 'date', 'readonly': 'readonly',
+        }, format='%Y-%m-%d'),
     )
     observacion = forms.CharField(
         required=False,

@@ -141,11 +141,34 @@ class Invoice(models.Model):
     def __str__(self):
         return f'Invoice #{self.numero or self.id} - {self.customer}'
 
+    # Campos financieros/identificatorios que ya no pueden cambiar una vez
+    # que la factura quedó PAGADA — auditoría 2026-07-17, hallazgo crítico.
+    CAMPOS_INMUTABLES_SI_PAGADA = ['numero', 'customer_id', 'subtotal', 'tax', 'total', 'tipo_pago']
+
     def save(self, *args, **kwargs):
         """
         Guarda en dos fases: primero para obtener el pk (necesario para
         construir el número de factura), luego actualiza solo ese campo.
+
+        Antes de guardar, si la factura YA existía en BD con estado=='PAGADA'
+        (el valor que tenía ANTES de este save, no el que se le está por
+        asignar ahora), rechaza el guardado si alguno de
+        CAMPOS_INMUTABLES_SI_PAGADA cambió respecto a lo que hay en BD. La
+        transición PENDIENTE->PAGADA (hecha por creditos_ventas.services)
+        no se ve afectada: en ESE save, el estado viejo todavía es
+        PENDIENTE, así que el chequeo ni se activa.
         """
+        if self.pk:
+            anterior = Invoice.objects.filter(pk=self.pk).values(
+                'estado', *self.CAMPOS_INMUTABLES_SI_PAGADA
+            ).first()
+            if anterior and anterior['estado'] == 'PAGADA':
+                for campo in self.CAMPOS_INMUTABLES_SI_PAGADA:
+                    if getattr(self, campo) != anterior[campo]:
+                        raise ValidationError(
+                            'No se puede modificar una factura ya pagada.'
+                        )
+
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and not self.numero:

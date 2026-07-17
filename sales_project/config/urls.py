@@ -22,10 +22,12 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('security/', include('security.urls')),
     path('', include('billing.urls')),
     path('purchases/', include('purchasing.urls')),
     path('creditos/', include('creditos_ventas.urls')),
     path('creditos-compras/', include('creditos_compras.urls')),
+    path('facturacion/', include('facturacion_electronica.urls')),
 ]
 
 if settings.DEBUG:

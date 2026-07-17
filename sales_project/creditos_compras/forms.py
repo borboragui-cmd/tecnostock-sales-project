@@ -11,7 +11,11 @@ class PagoCuotaCompraForm(forms.Form):
     )
     fecha = forms.DateField(
         required=False,
-        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+        # readonly: la fecha de pago siempre es hoy, mismo criterio que
+        # PagoCuotaForm en creditos_ventas/forms.py.
+        widget=forms.DateInput(attrs={
+            'class': 'form-control', 'type': 'date', 'readonly': 'readonly',
+        }, format='%Y-%m-%d'),
     )
     observacion = forms.CharField(
         required=False,

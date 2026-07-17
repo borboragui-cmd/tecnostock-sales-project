@@ -2,6 +2,22 @@
 {% block title %}Cuotas Pendientes{% endblock %}
 {% block content %}
 
+<style>
+.list-table thead th {
+    background-color: var(--surface); color: var(--text-secondary);
+    text-transform: uppercase; font-weight: 600; font-size: 0.72rem;
+    letter-spacing: 0.05em; border-top: none; border-bottom: 2px solid var(--border-strong);
+}
+.list-table tbody tr td { border-top: none; border-bottom: 1px solid var(--border); }
+.list-table tbody tr:last-child td { border-bottom: none; }
+.list-table tbody tr:hover td { background-color: var(--surface); }
+.list-table .text-end { font-variant-numeric: tabular-nums; }
+.list-table .btn-action {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 6px; font-size: 12px; padding: 5px 11px; font-weight: 500;
+}
+</style>
+
 <div class="page-header">
     <div>
         <div class="page-label">Créditos</div>
@@ -25,7 +41,7 @@
 </div>
 
 <div class="content-card">
-    <table class="table mb-0">
+    <table class="table list-table mb-0">
         <thead>
             <tr>
                 <th>Factura</th>
@@ -47,7 +63,7 @@
                 <td class="text-end">${{ cuota.valor }}</td>
                 <td class="text-end fw-bold">${{ cuota.saldo }}</td>
                 <td>
-                    <a href="{% url 'creditos_ventas:registrar_pagos' cuota.factura.pk %}" class="btn btn-sm btn-primary">
+                    <a href="{% url 'creditos_ventas:registrar_pagos' cuota.factura.pk %}" class="btn btn-sm btn-primary btn-action">
                         <i class="bi bi-cash-coin"></i> Pagar
                     </a>
                 </td>

@@ -1,0 +1,41 @@
+{% extends 'billing/base.html' %}
+{% block title %}PayPal — Iniciar sesión{% endblock %}
+{% block content %}
+
+<div class="alert alert-warning text-center fw-bold mb-4">
+    MODO SIMULACIÓN — no se procesa ningún pago real
+</div>
+
+<div class="d-flex justify-content-center">
+    <div class="content-card" style="max-width: 420px; width: 100%;">
+        <div class="content-card-body text-center">
+            <div style="font-family: Arial, sans-serif; font-weight: 800; font-style: italic; font-size: 2.2rem; margin-bottom: 1.5rem;">
+                <span style="color:#003087;">Pay</span><span style="color:#0070BA;">Pal</span>
+            </div>
+
+            <p class="text-muted mb-4">
+                Inicia sesión para pagar la Factura {{ factura.numero }}
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3 text-start">
+                    <label class="form-label">Correo electrónico o número de móvil</label>
+                    <input type="email" name="email" class="form-control" placeholder="tu@correo.com" required>
+                </div>
+                <div class="mb-4 text-start">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
+                </div>
+                <button type="submit" class="btn w-100 mb-2" style="background:#0070BA; color:#fff;">
+                    Iniciar sesión
+                </button>
+                <a href="{% url 'creditos_ventas:registrar_pagos' factura.id %}" class="btn btn-link w-100 text-muted">
+                    Cancelar
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

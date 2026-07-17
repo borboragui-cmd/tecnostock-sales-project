@@ -60,6 +60,30 @@
             <strong>Venta al Contado</strong> — Factura cancelada.
         </div>
         {% endif %}
+
+        <div class="content-card mt-3">
+            <div class="content-card-header">
+                <span class="content-card-title">Comprobante Electrónico</span>
+            </div>
+            <div class="content-card-body">
+                {% with comprobante=invoice.comprobantes.first %}
+                {% if comprobante %}
+                <p class="mb-2">Estado: <span class="badge bg-secondary">{{ comprobante.get_estado_display }}</span></p>
+                <a href="{% url 'facturacion_electronica:comprobante_detail' comprobante.pk %}" class="btn btn-sm btn-outline-primary">
+                    Ver comprobante
+                </a>
+                {% else %}
+                <p class="text-muted small mb-2">Aún no se generó ningún comprobante electrónico.</p>
+                <form method="post" action="{% url 'facturacion_electronica:generar_factura' invoice.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-file-earmark-text"></i> Generar comprobante electrónico
+                    </button>
+                </form>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-8">

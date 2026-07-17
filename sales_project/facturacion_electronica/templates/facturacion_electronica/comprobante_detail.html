@@ -1,0 +1,146 @@
+{% extends 'billing/base.html' %}
+{% block title %}Comprobante Electrónico{% endblock %}
+{% block content %}
+
+<style>
+.stepper { display: flex; align-items: center; gap: 0; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.stepper-step {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1rem; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border);
+    font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-secondary);
+}
+.stepper-step.is-active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.stepper-step.is-done { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+.stepper-arrow { color: var(--border-strong); margin: 0 0.35rem; }
+.detalle-tecnico summary {
+    cursor: pointer; font-weight: 600; color: var(--primary);
+    padding: 0.5rem 0;
+}
+.detalle-tecnico dl { display: grid; grid-template-columns: 220px 1fr; gap: 0.4rem 1rem; margin: 0; }
+.detalle-tecnico dt { color: var(--text-secondary); font-size: 0.82rem; }
+.detalle-tecnico dd { font-family: 'Inter', monospace; font-size: 0.85rem; margin: 0; word-break: break-all; }
+.xml-simulado {
+    background: var(--ink); color: #E2E8F0; padding: 1rem; border-radius: var(--radius);
+    font-family: monospace; font-size: 0.78rem; white-space: pre-wrap; margin-top: 0.75rem;
+}
+</style>
+
+<div class="page-header">
+    <div>
+        <div class="page-label">Facturación Electrónica</div>
+        <h1 class="page-title">Comprobante — {{ comprobante.get_tipo_comprobante_display }}</h1>
+        <p class="page-subtitle">Origen: {{ comprobante.origen }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'facturacion_electronica:comprobante_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al listado
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-warning fw-bold">
+    MODO SIMULACIÓN — no se conecta contra el SRI real ni sandbox. La firma
+    electrónica es simulada (no es XAdES-BES real).
+</div>
+
+<div class="stepper">
+    <span class="stepper-step {% if comprobante.estado == 'BORRADOR' %}is-active{% else %}is-done{% endif %}">1. Borrador</span>
+    <span class="stepper-arrow">→</span>
+    <span class="stepper-step {% if comprobante.estado == 'FIRMADO' %}is-active{% elif comprobante.fecha_firmado %}is-done{% endif %}">2. Firmado</span>
+    <span class="stepper-arrow">→</span>
+    <span class="stepper-step {% if comprobante.estado == 'ENVIADO' or comprobante.estado == 'EN_PROCESAMIENTO' %}is-active{% elif comprobante.fecha_enviado %}is-done{% endif %}">3. Enviado</span>
+    <span class="stepper-arrow">→</span>
+    <span class="stepper-step
+        {% if comprobante.estado == 'AUTORIZADO' %}is-done
+        {% elif comprobante.estado == 'RECHAZADO' or comprobante.estado == 'DEVUELTO' %}is-active
+        {% endif %}">4. {{ comprobante.get_estado_display }}</span>
+</div>
+
+<div class="content-card mb-4">
+    <div class="content-card-body">
+        {% if comprobante.estado == 'BORRADOR' %}
+        <form method="post" action="{% url 'facturacion_electronica:firmar' comprobante.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-vector-pen"></i> Firmar</button>
+        </form>
+        {% elif comprobante.estado == 'FIRMADO' %}
+        <form method="post" action="{% url 'facturacion_electronica:enviar' comprobante.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Enviar al SRI</button>
+        </form>
+        {% elif comprobante.estado == 'EN_PROCESAMIENTO' %}
+        <form method="post" action="{% url 'facturacion_electronica:consultar' comprobante.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Consultar estado</button>
+        </form>
+        {% if puede_forzar %}
+        <div class="mt-3 pt-3" style="border-top: 1px dashed var(--border-strong);">
+            <p class="text-muted small mb-2">Solo Administrador — forzar resultado para demo controlada:</p>
+            <form method="post" action="{% url 'facturacion_electronica:consultar' comprobante.pk %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="forzar" value="AUTORIZADO">
+                <button type="submit" class="btn btn-sm btn-outline-success">Forzar Autorizado</button>
+            </form>
+            <form method="post" action="{% url 'facturacion_electronica:consultar' comprobante.pk %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="forzar" value="RECHAZADO">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Forzar Rechazado</button>
+            </form>
+            <form method="post" action="{% url 'facturacion_electronica:consultar' comprobante.pk %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="forzar" value="DEVUELTO">
+                <button type="submit" class="btn btn-sm btn-outline-warning">Forzar Devuelto</button>
+            </form>
+        </div>
+        {% endif %}
+        {% elif comprobante.estado == 'AUTORIZADO' %}
+        <div class="alert alert-success mb-0"><strong>AUTORIZADO</strong> por el SRI (simulación).</div>
+        {% elif comprobante.estado == 'RECHAZADO' or comprobante.estado == 'DEVUELTO' %}
+        <div class="alert alert-danger mb-0">
+            <strong>{{ comprobante.get_estado_display }}</strong> — {{ comprobante.motivo_rechazo }}
+            <div class="mt-2">
+                {% if comprobante.factura %}
+                <a href="{% url 'facturacion_electronica:generar_factura' comprobante.factura.pk %}" class="btn btn-sm btn-outline-primary">
+                    Generar comprobante nuevo (secuencial nuevo)
+                </a>
+                {% else %}
+                <a href="{% url 'facturacion_electronica:generar_compra' comprobante.compra.pk %}" class="btn btn-sm btn-outline-primary">
+                    Generar comprobante nuevo (secuencial nuevo)
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="content-card-body">
+        <details class="detalle-tecnico">
+            <summary>Detalle técnico — clave de acceso y XML</summary>
+            <dl class="mt-3">
+                <dt>Clave de acceso completa</dt><dd>{{ comprobante.clave_acceso }}</dd>
+                <dt>Fecha de emisión</dt><dd>{{ comprobante.fecha_emision|date:"d/m/Y" }}</dd>
+                <dt>Tipo de comprobante</dt><dd>{{ comprobante.tipo_comprobante }} — {{ comprobante.get_tipo_comprobante_display }}</dd>
+                <dt>RUC del emisor</dt><dd>{{ comprobante.ruc_emisor }}</dd>
+                <dt>Tipo de ambiente</dt><dd>{{ comprobante.tipo_ambiente }} (1=Pruebas)</dd>
+                <dt>Establecimiento</dt><dd>{{ comprobante.establecimiento }}</dd>
+                <dt>Punto de emisión</dt><dd>{{ comprobante.punto_emision }}</dd>
+                <dt>Secuencial</dt><dd>{{ comprobante.secuencial }}</dd>
+                <dt>Código numérico</dt><dd>{{ comprobante.codigo_numerico }}</dd>
+                <dt>Tipo de emisión</dt><dd>{{ comprobante.tipo_emision }} (1=Normal)</dd>
+                <dt>Dígito verificador</dt><dd>{{ comprobante.digito_verificador }}</dd>
+                {% if comprobante.firma_hash %}
+                <dt>Hash de firma (simulado)</dt><dd>{{ comprobante.firma_hash }}</dd>
+                {% endif %}
+            </dl>
+            {% if comprobante.xml_firmado %}
+            <div class="xml-simulado">{{ comprobante.xml_firmado }}</div>
+            {% endif %}
+        </details>
+    </div>
+</div>
+
+{% endblock %}

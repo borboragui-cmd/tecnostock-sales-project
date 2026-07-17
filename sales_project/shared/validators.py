@@ -102,3 +102,31 @@ def validate_cedula_ec(value):
         )
 
     return value
+
+
+def calcular_digito_verificador_clave_acceso(digits_48):
+    """Módulo 11 de la clave de acceso de comprobantes electrónicos SRI
+    (48 dígitos -> 1 dígito verificador, total 49). Algoritmo DISTINTO al
+    de validate_cedula_ec de arriba: acá los pesos son cíclicos 2,3,4,5,6,7
+    (no una lista fija de 9 coeficientes), recorridos de derecha a
+    izquierda sobre los 48 dígitos.
+    """
+    if not (isinstance(digits_48, str) and digits_48.isdigit() and len(digits_48) == 48):
+        raise ValidationError(
+            'La clave de acceso debe tener exactamente 48 dígitos numéricos antes del verificador.',
+            code='invalid_length',
+        )
+
+    pesos = [2, 3, 4, 5, 6, 7]
+    total = 0
+    for i, digito in enumerate(reversed(digits_48)):
+        peso = pesos[i % 6]
+        total += int(digito) * peso
+
+    residuo = total % 11
+    resultado = 11 - residuo
+    if resultado == 10:
+        return 1
+    if resultado == 11:
+        return 0
+    return resultado

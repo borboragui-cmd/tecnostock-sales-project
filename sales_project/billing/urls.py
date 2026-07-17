@@ -7,10 +7,7 @@ urlpatterns = [
     # Home
     path('', views.home, name='home'),
     path('search/', views.global_search, name='global_search'),
-    
-    # Signup
-    path('signup/', views.SignUpView.as_view(), name='signup'),
-    
+
     # Brand (FBV)
     path('brands/', views.brand_list, name='brand_list'),
     path('brands/create/', views.brand_create, name='brand_create'),

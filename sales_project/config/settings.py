@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from decimal import Decimal
 from pathlib import Path
 
+from decouple import config
+from django.contrib.messages import constants as message_constants
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -42,6 +45,8 @@ INSTALLED_APPS = [
     'purchasing',
     'creditos_ventas',
     'creditos_compras',
+    'security',
+    'facturacion_electronica',
     #user apps
    'debug_toolbar',
    'django_extensions',
@@ -132,8 +137,36 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 LOGIN_URL = '/accounts/login/'
 
 
+# Correo (Gmail SMTP) — credenciales fuera del código, ver .env (no versionado)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = f'TecnoStock S.A. <{EMAIL_HOST_USER}>'
+
 # Reglas de negocio — módulos de crédito (creditos_ventas / creditos_compras)
 # Única fuente de verdad para estos valores: no hardcodear en services.py.
 
 TASA_MORA_DESCUENTO_MENSUAL = Decimal('0.02')  # 2% mensual, mora y descuento
 PAGO_MINIMO_CUOTA = Decimal('5.00')  # monto fijo mínimo por pago parcial, en dólares
+
+# Facturación electrónica simulada (facturacion_electronica) — RUC ficticio
+# de TecnoStock S.A., válido contra shared.validators.validate_cedula_ec
+# (sociedad privada, dígito verificador real). No es un RUC real ni
+# registrado en el SRI.
+EMPRESA_RUC = '0992345675001'
+
+# Probabilidades de cada resultado simulado al "consultar estado" del SRI.
+# Deben sumar 1.0 — services.consultar_respuesta_sri las usa para el sorteo
+# cuando no se fuerza un resultado manualmente.
+SRI_SIMULACION_PROBABILIDADES = {
+    'AUTORIZADO': 0.85,
+    'RECHAZADO': 0.10,
+    'DEVUELTO': 0.05,
+}
+
+MESSAGE_TAGS = {
+    message_constants.ERROR: 'danger',
+}

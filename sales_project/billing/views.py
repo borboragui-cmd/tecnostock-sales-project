@@ -5,7 +5,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth import login
 from django.http import HttpResponse
 from decimal import Decimal
 from django.db import transaction
@@ -26,10 +25,13 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
 from .models import *
-from .forms import SignUpForm, BrandForm, InvoiceForm, InvoiceDetailFormSet
+from .forms import BrandForm, InvoiceForm, InvoiceDetailFormSet
 from .ProductForm import ProductForm
-from shared.mixins import StaffRequiredMixin, ExportMixin
-from shared.decorators import audit_action
+from shared.mixins import StaffRequiredMixin, ExportMixin, GroupRequiredMixin
+from shared.decorators import audit_action, group_required
+
+CATALOGO_COMPRAS = ['Analista de Compras', 'Administrador']
+VENTAS = ['Vendedor', 'Administrador']
 
 # === HOME (Página principal) ===
 @login_required
@@ -50,7 +52,7 @@ def home(request):
 
     # Gráfico semanal
     DAYS_ES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
-    today = timezone.now().date()
+    today = timezone.localdate()
     week_start = today - timedelta(days=today.weekday())
     week_data = []
     for i in range(7):
@@ -89,7 +91,7 @@ def home(request):
     ).aggregate(total=Sum('saldo'))['total'] or 0
 
     cuotas_vencidas = CuotaVenta.objects.filter(
-        estado='PENDIENTE', fecha_vencimiento__lt=timezone.now().date()
+        estado='PENDIENTE', fecha_vencimiento__lt=timezone.localdate()
     ).count()
 
     cuentas_por_pagar = Purchase.objects.filter(
@@ -97,7 +99,7 @@ def home(request):
     ).aggregate(total=Sum('saldo'))['total'] or 0
 
     cuotas_compra_vencidas = CuotaCompra.objects.filter(
-        estado='PENDIENTE', fecha_vencimiento__lt=timezone.now().date()
+        estado='PENDIENTE', fecha_vencimiento__lt=timezone.localdate()
     ).count()
 
     context = {
@@ -122,17 +124,6 @@ def home(request):
     }
     return render(request, 'billing/home.html', context)
 
-# === REGISTRO ===
-class SignUpView(CreateView):
-    form_class = SignUpForm
-    template_name = 'registration/signup.html'
-    success_url = reverse_lazy('billing:brand_list')
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        login(self.request, self.object)
-        return response
-
 # === BRAND (FBV) ===
 @login_required
 @audit_action('LIST_BRANDS')
@@ -141,6 +132,7 @@ def brand_list(request):
     return render(request, 'billing/brand_list.html', {'brands': brands})
 
 @login_required
+@group_required(CATALOGO_COMPRAS)
 @audit_action('CREATE_BRAND')
 def brand_create(request):
     if request.method == 'POST':
@@ -154,6 +146,7 @@ def brand_create(request):
     return render(request, 'billing/brand_form.html', {'form': form, 'title': 'Crear Marca'})
 
 @login_required
+@group_required(CATALOGO_COMPRAS)
 @audit_action('UPDATE_BRAND')
 def brand_update(request, pk):
     brand = get_object_or_404(Brand, pk=pk)
@@ -168,6 +161,7 @@ def brand_update(request, pk):
     return render(request, 'billing/brand_form.html', {'form': form, 'title': 'Editar Marca'})
 
 @login_required
+@group_required(CATALOGO_COMPRAS)
 @audit_action('DELETE_BRAND')
 def brand_delete(request, pk):
     brand = get_object_or_404(Brand, pk=pk)
@@ -185,25 +179,28 @@ class ProductGroupListView(LoginRequiredMixin, ListView):
     context_object_name = 'items'
 
 @method_decorator(audit_action('CREATE_PRODUCT_GROUP'), name='dispatch')
-class ProductGroupCreateView(LoginRequiredMixin, CreateView):
+class ProductGroupCreateView(LoginRequiredMixin, GroupRequiredMixin, CreateView):
     model = ProductGroup
     fields = ['name', 'is_active']
     template_name = 'billing/productgroup_form.html'
     success_url = reverse_lazy('billing:productgroup_list')
+    group_required = CATALOGO_COMPRAS
 
 @method_decorator(audit_action('UPDATE_PRODUCT_GROUP'), name='dispatch')
-class ProductGroupUpdateView(LoginRequiredMixin, UpdateView):
+class ProductGroupUpdateView(LoginRequiredMixin, GroupRequiredMixin, UpdateView):
     model = ProductGroup
     fields = ['name', 'is_active']
     template_name = 'billing/productgroup_form.html'
     success_url = reverse_lazy('billing:productgroup_list')
+    group_required = CATALOGO_COMPRAS
 
 @method_decorator(audit_action('DELETE_PRODUCT_GROUP'), name='dispatch')
-class ProductGroupDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class ProductGroupDeleteView(LoginRequiredMixin, GroupRequiredMixin, StaffRequiredMixin, DeleteView):
     model = ProductGroup
     template_name = 'billing/productgroup_confirm_delete.html'
     success_url = reverse_lazy('billing:productgroup_list')
     staff_redirect_url = '/groups/'
+    group_required = CATALOGO_COMPRAS
 
 # === SUPPLIER (CBV) ===
 @method_decorator(audit_action('LIST_SUPPLIERS'), name='dispatch')
@@ -213,25 +210,28 @@ class SupplierListView(LoginRequiredMixin, ListView):
     context_object_name = 'items'
 
 @method_decorator(audit_action('CREATE_SUPPLIER'), name='dispatch')
-class SupplierCreateView(LoginRequiredMixin, CreateView):
+class SupplierCreateView(LoginRequiredMixin, GroupRequiredMixin, CreateView):
     model = Supplier
     fields = ['name', 'contact_name', 'email', 'phone', 'address', 'is_active']
     template_name = 'billing/supplier_form.html'
     success_url = reverse_lazy('billing:supplier_list')
+    group_required = CATALOGO_COMPRAS
 
 @method_decorator(audit_action('UPDATE_SUPPLIER'), name='dispatch')
-class SupplierUpdateView(LoginRequiredMixin, UpdateView):
+class SupplierUpdateView(LoginRequiredMixin, GroupRequiredMixin, UpdateView):
     model = Supplier
     fields = ['name', 'contact_name', 'email', 'phone', 'address', 'is_active']
     template_name = 'billing/supplier_form.html'
     success_url = reverse_lazy('billing:supplier_list')
+    group_required = CATALOGO_COMPRAS
 
 @method_decorator(audit_action('DELETE_SUPPLIER'), name='dispatch')
-class SupplierDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class SupplierDeleteView(LoginRequiredMixin, GroupRequiredMixin, StaffRequiredMixin, DeleteView):
     model = Supplier
     template_name = 'billing/supplier_confirm_delete.html'
     success_url = reverse_lazy('billing:supplier_list')
     staff_redirect_url = '/suppliers/'
+    group_required = CATALOGO_COMPRAS
 
 # === PRODUCT (CBV) ===
 @method_decorator(audit_action('LIST_PRODUCTS'), name='dispatch')
@@ -240,7 +240,7 @@ class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
     template_name = 'billing/product_list.html'
     context_object_name = 'items'
     paginate_by = 10
-    
+
     # Configuración de exportación
     export_fields = [
         ('name', 'Nombre'),
@@ -406,11 +406,12 @@ class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
         return context
 
 @method_decorator(audit_action('CREATE_PRODUCT'), name='dispatch')
-class ProductCreateView(LoginRequiredMixin, CreateView):
+class ProductCreateView(LoginRequiredMixin, GroupRequiredMixin, CreateView):
     model = Product
     form_class = ProductForm
     template_name = 'billing/product_form.html'
     success_url = reverse_lazy('billing:product_list')
+    group_required = CATALOGO_COMPRAS
 
 @method_decorator(audit_action('VIEW_PRODUCT'), name='dispatch')
 class ProductDetailView(LoginRequiredMixin, DetailView):
@@ -419,18 +420,20 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'product'
 
 @method_decorator(audit_action('UPDATE_PRODUCT'), name='dispatch')
-class ProductUpdateView(LoginRequiredMixin, UpdateView):
+class ProductUpdateView(LoginRequiredMixin, GroupRequiredMixin, UpdateView):
     model = Product
     form_class = ProductForm
     template_name = 'billing/product_form.html'
     success_url = reverse_lazy('billing:product_list')
+    group_required = CATALOGO_COMPRAS
 
 @method_decorator(audit_action('DELETE_PRODUCT'), name='dispatch')
-class ProductDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class ProductDeleteView(LoginRequiredMixin, GroupRequiredMixin, StaffRequiredMixin, DeleteView):
     model = Product
     template_name = 'billing/product_confirm_delete.html'
     success_url = reverse_lazy('billing:product_list')
     staff_redirect_url = '/products/'
+    group_required = CATALOGO_COMPRAS
 
 # === CUSTOMER (CBV) ===
 @method_decorator(audit_action('LIST_CUSTOMERS'), name='dispatch')
@@ -440,25 +443,28 @@ class CustomerListView(LoginRequiredMixin, ListView):
     context_object_name = 'items'
 
 @method_decorator(audit_action('CREATE_CUSTOMER'), name='dispatch')
-class CustomerCreateView(LoginRequiredMixin, CreateView):
+class CustomerCreateView(LoginRequiredMixin, GroupRequiredMixin, CreateView):
     model = Customer
     fields = ['dni', 'first_name', 'last_name', 'email', 'phone', 'address', 'is_active']
     template_name = 'billing/customer_form.html'
     success_url = reverse_lazy('billing:customer_list')
+    group_required = VENTAS
 
 @method_decorator(audit_action('UPDATE_CUSTOMER'), name='dispatch')
-class CustomerUpdateView(LoginRequiredMixin, UpdateView):
+class CustomerUpdateView(LoginRequiredMixin, GroupRequiredMixin, UpdateView):
     model = Customer
     fields = ['dni', 'first_name', 'last_name', 'email', 'phone', 'address', 'is_active']
     template_name = 'billing/customer_form.html'
     success_url = reverse_lazy('billing:customer_list')
+    group_required = VENTAS
 
 @method_decorator(audit_action('DELETE_CUSTOMER'), name='dispatch')
-class CustomerDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class CustomerDeleteView(LoginRequiredMixin, GroupRequiredMixin, StaffRequiredMixin, DeleteView):
     model = Customer
     template_name = 'billing/customer_confirm_delete.html'
     success_url = reverse_lazy('billing:customer_list')
     staff_redirect_url = '/customers/'
+    group_required = VENTAS
 
 # === INVOICE (FBV - con formset de detalle) ===
 @login_required
@@ -517,6 +523,7 @@ def invoice_list(request):
 
 
 @login_required
+@group_required(VENTAS)
 def invoice_create(request):
     """Crea una factura con sus líneas de detalle usando formset."""
     if request.method == 'POST':
@@ -578,6 +585,7 @@ def invoice_detail(request, pk):
 
 
 @login_required
+@group_required(VENTAS)
 def invoice_delete(request, pk):
     """Elimina una factura y todos sus detalles (CASCADE)."""
     invoice = get_object_or_404(Invoice, pk=pk)

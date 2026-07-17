@@ -25,6 +25,9 @@ from openpyxl.styles import Font, Alignment, PatternFill
 from .models import Purchase, PurchaseDetail
 from .forms import PurchaseForm, PurchaseDetailFormSet
 from billing.models import Product, Supplier
+from shared.decorators import group_required
+
+CATALOGO_COMPRAS = ['Analista de Compras', 'Administrador']
 
 
 @login_required
@@ -64,6 +67,7 @@ def purchase_list(request):
 
 
 @login_required
+@group_required(CATALOGO_COMPRAS)
 def purchase_create(request):
     if request.method == 'POST':
         form = PurchaseForm(request.POST)
@@ -124,6 +128,7 @@ def purchase_detail(request, pk):
 
 
 @login_required
+@group_required(CATALOGO_COMPRAS)
 def purchase_delete(request, pk):
     purchase = get_object_or_404(
         Purchase.objects.prefetch_related('details__product'),

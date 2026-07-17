@@ -71,8 +71,12 @@
             </table>
 
             {% if filas %}
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" name="accion" value="manual" class="btn btn-primary">
                 <i class="bi bi-save"></i> Registrar pagos
+            </button>
+            <button type="submit" formaction="{% url 'creditos_compras:pagar_con_paypal' compra.id %}"
+                    class="btn" style="background:#0070BA; color:#fff;">
+                <i class="bi bi-paypal"></i> Pagar con PayPal
             </button>
             {% endif %}
         </form>

@@ -44,13 +44,13 @@ class CuotaVenta(models.Model):
         No es un campo de BD nuevo, solo una bandera calculada para
         resaltar en pantalla y en reportes — no altera el schema pedido
         por el enunciado (que solo define PENDIENTE/PAGADA)."""
-        return self.estado == 'PENDIENTE' and self.fecha_vencimiento < timezone.now().date()
+        return self.estado == 'PENDIENTE' and self.fecha_vencimiento < timezone.localdate()
 
     def interes_mora_actual(self, fecha=None):
         """Interés si se liquidara HOY (o en `fecha`). 0 si no está vencida.
         Prorratea TASA_MORA_DESCUENTO_MENSUAL linealmente por días de mora
         (mes = 30 días) sobre el saldo pendiente."""
-        fecha = fecha or timezone.now().date()
+        fecha = fecha or timezone.localdate()
         vencida = self.estado == 'PENDIENTE' and self.fecha_vencimiento < fecha
         if not vencida:
             return Decimal('0.00')
@@ -64,7 +64,7 @@ class CuotaVenta(models.Model):
         0 si ya está vencida o si fecha >= fecha_vencimiento. Prorratea
         TASA_MORA_DESCUENTO_MENSUAL linealmente por días de anticipo
         (mes = 30 días) sobre el valor nominal de la cuota."""
-        fecha = fecha or timezone.now().date()
+        fecha = fecha or timezone.localdate()
         if self.estado != 'PENDIENTE' or fecha >= self.fecha_vencimiento:
             return Decimal('0.00')
         dias_anticipo = (self.fecha_vencimiento - fecha).days
@@ -83,6 +83,12 @@ class CuotaVenta(models.Model):
 
 
 class PagoCuotaVenta(models.Model):
+    METODO_PAGO_CHOICES = [
+        ('EFECTIVO', 'Efectivo'),
+        ('TRANSFERENCIA', 'Transferencia'),
+        ('PAYPAL', 'PayPal'),
+    ]
+
     cuota = models.ForeignKey(CuotaVenta, on_delete=models.PROTECT, related_name='pagos')
     fecha = models.DateField()
     valor = models.DecimalField(
@@ -92,6 +98,8 @@ class PagoCuotaVenta(models.Model):
     interes_mora = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descuento_pronto_pago = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     observacion = models.TextField(blank=True)
+    metodo_pago = models.CharField(max_length=15, choices=METODO_PAGO_CHOICES, default='EFECTIVO')
+    paypal_transaction_id = models.CharField(max_length=40, blank=True)
 
     class Meta:
         verbose_name = 'Pago de Cuota'

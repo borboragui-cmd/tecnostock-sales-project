@@ -1,0 +1,13 @@
+{% extends 'billing/base.html' %}
+{% block title %}Editar usuario{% endblock %}
+{% block content %}
+<div style="max-width:640px;">
+    <h2>Editar usuario</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% url 'security:user_list' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
